@@ -1,0 +1,31 @@
+engines:
+  duplication:
+    enabled: true
+    config:
+      languages:
+      - php
+  fixme:
+    enabled: true
+  phpmd:
+    enabled: true
+  phpcodesniffer:
+    enabled: true
+    config:
+      standard: "PSR1,PSR2"
+    checks:
+      Generic WhiteSpace DisallowTabIndent NonIndentTabsUsed:
+        enabled: false
+  markdownlint:
+    enabled: true
+    checks:
+      MD010:
+        enabled: false
+      MD013:
+        enabled: false
+ratings:
+  paths:
+  - "**.php"
+  - "**.md"
+exclude_paths:
+- tests/
+- vendor/

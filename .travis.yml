@@ -1,0 +1,21 @@
+language: php
+
+php:
+  - 7.0
+  - hhvm
+
+install: composer install --no-interaction
+
+script: phpunit
+
+after_success:
+  # CodeClimate.com
+  - vendor/bin/test-reporter
+  # Codecov.io
+  - bash <(curl -s https://codecov.io/bash)
+  # Codacy.com
+  - vendor/bin/codacycoverage clover build/logs/clover.xml
+  # Coveralls.io
+  - mkdir build/cov
+  - vendor/bin/phpcov merge --clover build/logs/clover.xml build/cov
+  - vendor/bin/coveralls

@@ -1,0 +1,26 @@
+{
+	"name": "aensley/media-organizer",
+	"type": "library",
+	"license": "MIT",
+	"homepage": "https://github.com/aensley/media-organizer/",
+	"description": "Organize images and videos (or any files, really) into date-based folders.",
+	"keywords": ["media", "image", "video", "jpg", "mp4"],
+	"authors": [
+		{
+			"name": "Andrew Ensley",
+			"homepage": "https://andrewensley.com"
+		}
+	],
+	"autoload": {
+		"psr-0": { "Aensley\\": "src/" }
+	},
+	"require": {
+		"php": ">=5.5.0"
+	},
+	"require-dev": {
+		"codacy/coverage": "dev-master",
+		"codeclimate/php-test-reporter": "dev-master",
+		"phpunit/phpcov": "dev-master",
+		"satooshi/php-coveralls": "1.0.x-dev"
+	}
+}
