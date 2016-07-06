@@ -27,6 +27,7 @@ class MediaOrganizer
 		'target_directory' => '',
 		// Directory structure to use for target. Must be set.
 		// Y = 4-digit year, y = 2-digit year, m = 2-digit month, d = 2-digit day
+		// Anything from http://php.net/date will work, except time-based options as they will not be consistent.
 		'target_mask' => 'Y/Y-m-d',
 		// true = overwrite same files that already exist in target.
 		// false = add incrementing counter to same file names until there's no collision.
