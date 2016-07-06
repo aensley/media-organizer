@@ -22,5 +22,9 @@
 		"codeclimate/php-test-reporter": "dev-master",
 		"phpunit/phpcov": "dev-master",
 		"satooshi/php-coveralls": "1.0.x-dev"
+	},
+	"suggest": {
+		"monolog/monolog": "Advanced logging options",
+		"bramus/monolog-colored-line-formatter": "Colored log output in bash",
 	}
 }
