@@ -25,6 +25,6 @@
 	},
 	"suggest": {
 		"monolog/monolog": "Advanced logging options",
-		"bramus/monolog-colored-line-formatter": "Colored log output in bash",
+		"bramus/monolog-colored-line-formatter": "Colored log output in bash"
 	}
 }
