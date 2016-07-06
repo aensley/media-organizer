@@ -85,7 +85,7 @@ use \Monolog\Handler\StreamHandler;
 use \Bramus\Monolog\Formatter\ColoredLineFormatter;
 use \Aensley\MediaOrganizer\MediaOrganizer;
 
-$logger = new Logger('moveMedia');
+$logger = new Logger('mediaOrganizer');
 // Colored output in Bash
 $handler = new StreamHandler('php://stdout', Logger::DEBUG);
 $handler->setFormatter(new ColoredLineFormatter());
