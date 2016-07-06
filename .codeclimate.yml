@@ -15,8 +15,6 @@ engines:
         enabled: false
       Design/WeightedMethodCount:
         enabled: false
-      CyclomaticComplexity:
-        reportLevel: 15
   phpcodesniffer:
     enabled: true
     config:
@@ -34,7 +32,7 @@ engines:
       MD013:
         enabled: false
       MD029:
-        style: "ordered"
+        enabled: false
 ratings:
   paths:
   - "**.php"
