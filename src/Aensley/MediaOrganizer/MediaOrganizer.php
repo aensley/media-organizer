@@ -462,7 +462,7 @@ class MediaOrganizer
 		if (!$this->directoryExistsAndIsWritable($directory)) {
 			$this->log(
 				'error',
-				'Target directory does not exist or is unwritable: ' . $this->options['source_directory']
+				'Target directory does not exist or is unwritable: ' . $directory
 			);
 			return '';
 		}
