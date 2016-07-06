@@ -172,12 +172,18 @@ class MediaOrganizer
 	private function validOptions()
 	{
 		if (!$this->directoryExistsAndIsWritable($this->options['source_directory'])) {
-			$this->log('error', 'Source directory does not exist or is unwritable: ' . $this->options['source_directory']);
+			$this->log(
+				'error',
+				'Source directory does not exist or is unwritable: ' . $this->options['source_directory']
+			);
 			return false;
 		}
 
 		if (!$this->directoryExistsAndIsWritable($this->options['target_directory'])) {
-			$this->log('error', 'Target directory does not exist or is unwritable: ' . $this->options['target_directory']);
+			$this->log(
+				'error',
+				'Target directory does not exist or is unwritable: ' . $this->options['target_directory']
+			);
 			return false;
 		}
 
@@ -454,7 +460,10 @@ class MediaOrganizer
 
 		$directory = $this->options['target_directory'] . date($this->options['target_mask'], strtotime($date)) . '/';
 		if (!$this->directoryExistsAndIsWritable($directory)) {
-			$this->log('error', 'Target directory does not exist or is unwritable: ' . $this->options['source_directory']);
+			$this->log(
+				'error',
+				'Target directory does not exist or is unwritable: ' . $this->options['source_directory']
+			);
 			return '';
 		}
 
@@ -466,7 +475,10 @@ class MediaOrganizer
 			} while (file_exists($target) && $counter < 10000);
 
 			if (file_exists($target)) {
-				$this->log('warning', 'Could not find an available target to move ' . $file . ' to (tried 10,000 variations).');
+				$this->log(
+					'warning',
+					'Could not find an available target to move ' . $file . ' to (tried 10,000 variations).'
+				);
 				return '';
 			}
 		}

@@ -18,23 +18,23 @@ This was primarily written to organize JPG images, but it will work for files of
 
  1. **EXIF** - Retrieve the date from the file's EXIF data (JPG and TIFF images only).
  2. **File Name Masks** - Match date/time patterns in the name of the file.
- 3. **Modified Time** - Use the file's "last modified" time. This property is set by the operating system and is often not as reliable as the first two. 
+ 3. **Modified Time** - Use the file's "last modified" time. This property is set by the operating system and is often not as reliable as the first two.
 
 ## Installation
 
 Install the latest version with
 
 ```bash
-$ composer require aensley/media-organizer
+composer require aensley/media-organizer
 ```
 
 ## Options
 
-#### Profiles
+### Profiles
 
 You can specify any number of profiles to process. They will be processed in order. Each profile can have its own separate options. Available options are [documented in the code](https://github.com/aensley/media-organizer/blob/master/src/Aensley/MediaOrganizer/MediaOrganizer.php#L14).
 
-#### Logger
+### Logger
 
 You can specify a logger object implementing the [PRS-3 Logger Interface](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-3-logger-interface.md) for custom handling of log messages. I recommend [Monolog](https://github.com/Seldaek/monolog) (and [monolog-colored-line-formatter](https://github.com/bramus/monolog-colored-line-formatter) for bonus points in bash).
 
@@ -42,7 +42,7 @@ Otherwise, you can specify a log level string (one of: 'none', 'error', 'warning
 
 ## Requirements
 
- * PHP >= 5.5
+* PHP >= 5.5
 
 ## Example usage
 
