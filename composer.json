@@ -12,7 +12,7 @@
 		}
 	],
 	"autoload": {
-		"psr-0": { "Aensley\\": "src/" }
+		"psr-4": { "Aensley\\": "src/Aensley" }
 	},
 	"require": {
 		"php": ">=5.5.0"

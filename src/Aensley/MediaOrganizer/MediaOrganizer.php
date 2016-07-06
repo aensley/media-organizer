@@ -5,8 +5,8 @@ namespace Aensley\MediaOrganizer;
 /**
  * Organizes images and videos (or any files, really) into date-based folders.
  *
- * @package	Aensley/MediaOrganizer
- * @author	Andrew Ensley
+ * @package Aensley/MediaOrganizer
+ * @author  Andrew Ensley
  */
 class MediaOrganizer
 {
@@ -53,7 +53,7 @@ class MediaOrganizer
 	 *
 	 * @var array
 	 */
-	private $logLevels = array('none' => 0, 'error' => 1, 'warn' => 2, 'info' => 3, 'debug' => 4);
+	private $logLevels = array('none' => 1000, 'error' => 400, 'warning' => 300, 'info' => 200, 'debug' => 100);
 
 	/**
 	 * The log level.
@@ -61,6 +61,13 @@ class MediaOrganizer
 	 * @var int
 	 */
 	private $logLevel = 2;
+
+	/**
+	 * Logger object of a class implementing Psr\Log\LoggerInterface.
+	 *
+	 * @var object
+	 */
+	private $logger;
 
 	/**
 	 * Options. Temporary variable set by each profile in $this->organize()
@@ -73,28 +80,37 @@ class MediaOrganizer
 	/**
 	 * MediaOrganizer constructor.
 	 *
-	 * @param array  $profiles An associative array of 'profile_name' => options pairs.
-	 *                         The options themselves are an associative array overriding $this->defaults.
-	 * @param string $logLevel Set the log level.
+	 * @param array $profiles An associative array of 'profile_name' => options pairs.
+	 *                        The options themselves are an associative array overriding $this->defaults.
+	 * @param mixed $logger   Set the logger object (implementing Psr\Log\LoggerInterface) to handle messages.
+	 *                        Otherwise, set to a valid log level string to use internal simple logger.
 	 */
-	public function __construct($profiles = array(), $logLevel = 'warn')
+	public function __construct($profiles = array(), $logger = 'warning')
 	{
 		if (!empty($profiles) && is_array($profiles)) {
 			$this->profiles = $profiles;
 		}
 
-		$this->setLogLevel($logLevel);
+		$this->setLogger($logger);
 	}
 
 
 	/**
-	 * Sets the log level.
+	 * Set the logger object.
+	 * The $logger is required and must be an object of a class implementing Psr\Log\LoggerInterface.
 	 *
-	 * @param string $logLevel The log level.
+	 * @param mixed $logger Object of a class implementing Psr\Log\LoggerInterface to handle messages.
+	 *                      Otherwise, a valid log level string to use internal simple logger.
 	 */
-	public function setLogLevel($logLevel = '') {
-		if (!empty($logLevel) && isset($this->logLevels[$logLevel])) {
-			$this->logLevel = $this->logLevels[$logLevel];
+	public function setLogger($logger)
+	{
+		if (is_object($logger)) {
+			$this->logger = $logger;
+			return;
+		}
+
+		if (is_string($logger) && isset($this->logLevels[$logger])) {
+			$this->logLevel = $this->logLevels[$logger];
 		}
 	}
 
@@ -112,26 +128,34 @@ class MediaOrganizer
 		}
 
 		foreach ($profiles as $name => $options) {
-			$this->info('Processing profile: ' . $name);
+			$this->log('info', 'Processing profile: ' . $name);
 			$this->options = array_merge($this->defaults, $options);
 			if ($this->validOptions()) {
 				$files = $this->listFiles($this->options['source_directory']);
 				$count = count($files);
-				$this->debug($count . ' file' . ($count === 1 ? '' : 's') . ' found.');
+				$succeeded = 0;
+				$this->log('debug', $count . ' file' . ($count === 1 ? '' : 's') . ' found.');
 				foreach ($files as $file) {
-					$this->info('Processing: ' . $file);
+					$this->log('info', 'Processing: ' . $file);
 					if ($this->isReadableFile($file)) {
 						$date = $this->getDate($file);
-						$this->debug($file . ' date ' . $date);
+						$this->log('debug', $file . ' date ' . $date);
 						if ($date) {
-							$this->moveFile($file, $date);
-						} else {
-							$this->warn('Could not determine date of file: ' . $file);
+							if ($this->moveFile($file, $date)) {
+								$succeeded++;
+							}
+
+							continue;
 						}
-					} else {
-						$this->warn($file . ' is unreadable or not a regular file.');
+
+						$this->log('warning', 'Could not determine date of file: ' . $file);
+						continue;
 					}
+
+					$this->log('warning', $file . ' is unreadable or not a regular file.');
 				}
+
+				$this->log('info', $succeeded . ' of ' . $count . ' file' . ($count === 1 ? '' : 's') . ' moved.');
 			}
 		}
 	}
@@ -147,33 +171,22 @@ class MediaOrganizer
 	private function validOptions()
 	{
 		if (!$this->directoryExistsAndIsWritable($this->options['source_directory'])) {
-			$this->error('Source directory does not exist or is unwritable: ' . $this->options['source_directory']);
+			$this->log('error', 'Source directory does not exist or is unwritable: ' . $this->options['source_directory']);
 			return false;
 		}
 
 		if (!$this->directoryExistsAndIsWritable($this->options['target_directory'])) {
-			$this->error('Target directory does not exist or is unwritable: ' . $this->options['target_directory']);
+			$this->log('error', 'Target directory does not exist or is unwritable: ' . $this->options['target_directory']);
 			return false;
 		}
 
-		if (
-			empty($this->options['target_mask'])
-			|| (
-				stripos($this->options['target_mask'], 'y') === false
-				&& strpos($this->options['target_mask'], 'm') === false
-				&& strpos($this->options['target_mask'], 'd') === false
-			)
-		) {
-			$this->error('Invalid or empty target mask.');
+		if (!$this->validMask($this->options['target_mask'])) {
+			$this->log('error', 'Invalid or empty target mask.');
 			return false;
 		}
 
-		if (
-			!$this->options['scan_exif']
-			&& !$this->options['file_name_masks']
-			&& !$this->options['modified_time']
-		) {
-			$this->error('No scanning options enabled. Please check the profile options.');
+		if (!$this->atLeastOneScanOption()) {
+			$this->log('error', 'No scanning options enabled. Please check the profile options.');
 			return false;
 		}
 
@@ -182,19 +195,47 @@ class MediaOrganizer
 
 
 	/**
+	 * Checks if there is at least one scan option enabled.
+	 *
+	 * @return bool True if at least one scan option is enabled. False if not.
+	 */
+	private function atLeastOneScanOption()
+	{
+		return ($this->options['scan_exif'] || $this->options['file_name_masks'] || $this->options['modified_time']);
+	}
+
+
+	/**
+	 * Checks if the given target mask is valid.
+	 *
+	 * @param string $mask The target mask to check.
+	 *
+	 * @return bool True if valid. False if not.
+	 */
+	private function validMask($mask = '')
+	{
+		return (
+			// Must not be empty.
+			!empty($mask)
+			// Must have at least one of: Y, y, m, or d.
+			&& (stripos($mask, 'y') !== false || strpos($mask, 'm') !== false || strpos($mask, 'd') !== false)
+		);
+	}
+
+
+	/**
 	 * Checks if the given directory exists and is writable.
 	 * Optionally tries to create the directory if it doesn't exist (default). Can be disabled.
 	 *
-	 * @param string         $directory The directory to check.
-	 * @param bool[optional] $create    Set to false to disable automatically creating the directory.
+	 * @param string $directory The directory to check.
 	 *
 	 * @return bool
 	 */
-	private function directoryExistsAndIsWritable($directory = '', $create = true)
+	private function directoryExistsAndIsWritable($directory = '')
 	{
 		return (
 			!empty($directory)
-			&& (file_exists($directory) || ($create && mkdir($directory, 0775, true)))
+			&& (file_exists($directory) || mkdir($directory, 0775, true))
 			&& is_dir($directory)
 			&& is_writable($directory)
 		);
@@ -211,42 +252,40 @@ class MediaOrganizer
 	private function listFiles($directory)
 	{
 		$returnFiles = array();
-		if (!empty($directory) && is_dir($directory)) {
-			$files = scandir($directory);
-			foreach ($files as $file) {
-				if (in_array($file, array('.', '..'))) {
-					// Skip virtual paths.
-					continue;
-				}
-
-				$file = $directory . $file;
-				if (is_link($file)) {
-					// Do not follow links.
-					continue;
-				} elseif (is_dir($file)) {
-					if ($this->options['search_recursive']) {
-						// Recursion.
-						$dirFiles = $this->listFiles($file);
-						// Add files found in sub-directory.
-						$returnFiles = array_merge($returnFiles, $dirFiles);
-					}
-
-					// Do not add directories.
-					continue;
-				}
-
-				// We know it's a regular file at this point.
-				if (!empty($this->options['valid_extensions'])) {
-					$ext = pathinfo($file, PATHINFO_EXTENSION);
-					if (!in_array($ext, $this->options['valid_extensions'])) {
-						// Invalid file extension.
-						continue;
-					}
-				}
-
-				// Passed all the exclusion tests. Add it to the list.
-				$returnFiles[] = $file;
+		$files = scandir($directory);
+		foreach ($files as $file) {
+			if (in_array($file, array('.', '..'))) {
+				// Skip virtual paths.
+				continue;
 			}
+
+			$file = $directory . $file;
+			if (is_link($file)) {
+				// Do not follow links.
+				continue;
+			} elseif (is_dir($file)) {
+				if ($this->options['search_recursive']) {
+					// Recursion.
+					$dirFiles = $this->listFiles($file . '/');
+					// Add files found in sub-directory.
+					$returnFiles = array_merge($returnFiles, $dirFiles);
+				}
+
+				// Do not add directories.
+				continue;
+			}
+
+			// We know it's a regular file at this point.
+			if (!empty($this->options['valid_extensions'])) {
+				$ext = pathinfo($file, PATHINFO_EXTENSION);
+				if (!in_array($ext, $this->options['valid_extensions'])) {
+					// Invalid file extension.
+					continue;
+				}
+			}
+
+			// Passed all the exclusion tests. Add it to the list.
+			$returnFiles[] = $file;
 		}
 
 		// Return what we found.
@@ -266,7 +305,7 @@ class MediaOrganizer
 		if ($this->options['scan_exif']) {
 			$date = $this->getExifDate($file);
 			if ($date) {
-				$this->debug('Date retrieved from EXIF data.');
+				$this->log('debug', 'Date retrieved from EXIF data.');
 				return $date;
 			}
 		}
@@ -274,13 +313,13 @@ class MediaOrganizer
 		if ($this->options['file_name_masks']) {
 			$date = $this->getFileNameDate($file);
 			if ($date) {
-				$this->debug('Date retrieved from file name.');
+				$this->log('debug', 'Date retrieved from file name.');
 				return $date;
 			}
 		}
 
 		if ($this->options['modified_time']) {
-			$this->debug('Date retrieved from modified time.');
+			$this->log('debug', 'Date retrieved from modified time.');
 			$date = $this->getModifiedDate($file);
 			if ($date) {
 				return $date;
@@ -300,10 +339,19 @@ class MediaOrganizer
 	 */
 	private function getExifDate($file = '')
 	{
-		$exif = exif_read_data($file, 'EXIF');
-		if (!empty($exif['DateTime'])) {
-			$dateTime = mb_split(' ', $exif['DateTime']);
-			return str_ireplace(':', '-', $dateTime[0]);
+		$exif = @exif_read_data($file, 'EXIF');
+		// Fields in which to find the date, in order of preference.
+		$exifFields = array('DateTime', 'DateTimeOriginal', 'DateTimeDigitized');
+		if (!empty($exif)) {
+			foreach ($exifFields as $exifField) {
+				if (!empty($exif[$exifField])) {
+					$dateTime = mb_split(' ', $exif[$exifField]);
+					$date = trim($dateTime[0]);
+					if (preg_match('/^\d{4}\:\d{2}\:\d{2}$/', $date)) {
+						return str_ireplace(':', '-', $date);
+					}
+				}
+			}
 		}
 
 		return '';
@@ -340,8 +388,7 @@ class MediaOrganizer
 	 */
 	private function fileMask($file = '', $mask = '')
 	{
-		switch ($mask)
-		{
+		switch ($mask) {
 			case 'YYYY-MM-DD':
 				$digitMask = '/(\d{4})\-(\d{2})\-(\d{2})/';
 				break;
@@ -406,92 +453,48 @@ class MediaOrganizer
 
 		$directory = $this->options['target_directory'] . date($this->options['target_mask'], strtotime($date)) . '/';
 		if (!$this->directoryExistsAndIsWritable($directory)) {
-			$this->error('Target directory does not exist or is unwritable: ' . $this->options['source_directory']);
+			$this->log('error', 'Target directory does not exist or is unwritable: ' . $this->options['source_directory']);
 			return '';
 		}
 
 		$target = $directory . $filename . '.' . $extension;
 		if (!$this->options['overwrite'] && file_exists($target)) {
-			$x = 0;
+			$counter = 0;
 			do {
-				$target = $directory . $filename . '_' . $x++ . '.' . $extension;
-			} while (file_exists($target) && $x < 10000);
+				$target = $directory . $filename . '_' . $counter++ . '.' . $extension;
+			} while (file_exists($target) && $counter < 10000);
 
 			if (file_exists($target)) {
-				$this->warn('Could not find an available target to move ' . $file . ' to (tried 10,000 variations).');
+				$this->log('warning', 'Could not find an available target to move ' . $file . ' to (tried 10,000 variations).');
 				return '';
 			}
 		}
 
 		if (rename($file, $target)) {
-			$this->info($file . ' moved to ' . $target);
+			$this->log('info', $file . ' moved to ' . $target);
 			return $target;
 		}
 
-		$this->warn('Could not move ' . $file . ' to ' . $target);
+		$this->log('warning', 'Could not move ' . $file . ' to ' . $target);
 		return '';
 	}
 
 
 	/**
-	 * Echoes a single line to output.
+	 * Logs a message.
 	 *
-	 * @param string $text The text to echo followed by a line feed ("\n").
+	 * @param string $level The log level of the message.
+	 * @param string $text  The message to log.
 	 */
-	private function line($text = '')
+	private function log($level = 'info', $text = '')
 	{
-		echo $text, "\n";
-	}
-
-
-	/**
-	 * Handles an error message.
-	 *
-	 * @param string $text The error message.
-	 */
-	private function error($text = '')
-	{
-		if ($this->logLevel >= $this->logLevels['error']) {
-			$this->line('ERROR:   ' . $text);
+		if (isset($this->logger)) {
+			$this->logger->log($level, $text);
+			return;
 		}
-	}
 
-
-	/**
-	 * Handles a warning message.
-	 *
-	 * @param string $text The warning message.
-	 */
-	private function warn($text = '')
-	{
-		if ($this->logLevel >= $this->logLevels['warn']) {
-			$this->line('WARNING: ' . $text);
-		}
-	}
-
-
-	/**
-	 * Handles an info message.
-	 *
-	 * @param string $text The info message.
-	 */
-	private function info($text = '')
-	{
-		if ($this->logLevel >= $this->logLevels['info']) {
-			$this->line('INFO:    ' . $text);
-		}
-	}
-
-
-	/**
-	 * Handles a debug message.
-	 *
-	 * @param string $text The debug message.
-	 */
-	private function debug($text = '')
-	{
-		if ($this->logLevel >= $this->logLevels['debug']) {
-			$this->line('DEBUG:   ' . $text);
+		if ($this->logLevel <= $this->logLevels[$level]) {
+			echo strtoupper($level), ': ', $text, "\n";
 		}
 	}
 }
