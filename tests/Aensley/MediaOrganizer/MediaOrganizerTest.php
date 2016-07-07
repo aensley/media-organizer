@@ -1,6 +1,8 @@
 <?php
 
 use \Aensley\MediaOrganizer\MediaOrganizer;
+use \Monolog\Logger;
+use \Monolog\Handler\StreamHandler;
 
 class MediaOrganizerTest extends \PHPUnit_Framework_TestCase {
 
@@ -75,6 +77,11 @@ class MediaOrganizerTest extends \PHPUnit_Framework_TestCase {
 
 	public function testInstantiation() {
 		$this->assertInstanceOf('\Aensley\MediaOrganizer\MediaOrganizer', $this->mediaOrganizer);
+	}
+
+	public function testBadOptions(){
+		$this->mediaOrganizer->organize();
+		$this->mediaOrganizer->organize(array('test_empty_target' => array('source_directory' => $this->sourceDirectory)));
 	}
 
 	public function testEmptyInstantiation() {
@@ -189,6 +196,14 @@ class MediaOrganizerTest extends \PHPUnit_Framework_TestCase {
 		}
 
 		$this->assertFileExists($this->sourceDirectory . 'wrong.extension');
+	}
+
+	public function testLoggerObject()
+	{
+		$logger = new Logger('mediaOrganizer');
+		$logger->pushHandler(new StreamHandler('php://stdout', Logger::DEBUG));
+		$this->mediaOrganizer = new MediaOrganizer($this->profiles, $logger);
+		$this->mediaOrganizer->organize(array('images_exif' => $this->profiles['images_exif']));
 	}
 
 	public function testSearchRecursive()

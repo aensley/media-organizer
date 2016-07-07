@@ -6,12 +6,13 @@ Organize images and videos (or any files) into date-based folders.
 [![Build Status](https://travis-ci.org/aensley/media-organizer.svg)](https://travis-ci.org/aensley/media-organizer)
 [![Tested Versions Status](https://php-eye.com/badge/aensley/media-organizer/tested.svg?branch=dev-master)](https://php-eye.com/package/aensley/media-organizer)
 [![Dependency Status](https://www.versioneye.com/php/aensley:media-organizer/dev-master/badge)](https://www.versioneye.com/php/aensley:media-organizer)
+[![Reference Status](https://www.versioneye.com/php/aensley:media-organizer/reference_badge.svg)](https://www.versioneye.com/php/aensley:media-organizer/references)
 [![GitHub Issues](https://img.shields.io/github/issues-raw/aensley/media-organizer.svg)](https://github.com/aensley/media-organizer/issues)
 [![Latest Stable Version](https://poser.pugx.org/aensley/media-organizer/v/stable)](https://packagist.org/packages/aensley/media-organizer)
 [![Packagist Downloads](https://img.shields.io/packagist/dt/aensley/media-organizer.svg)](https://packagist.org/packages/aensley/media-organizer)
 
 [![Code Climate Grade](https://codeclimate.com/github/aensley/media-organizer/badges/gpa.svg)](https://codeclimate.com/github/aensley/media-organizer)
-[![Code Climate Issues](https://img.shields.io/codeclimate/issues/github/aensley/media-organizer.svg)](https://codeclimate.com/github/aensley/media-organizer)
+[![Code Climate Issues](https://img.shields.io/codeclimate/issues/github/aensley/media-organizer.svg)](https://codeclimate.com/github/aensley/media-organizer/issues)
 [![Codacy Grade](https://api.codacy.com/project/badge/grade/a3adfef59dca4d64bafaa84afc812bdf)](https://www.codacy.com/app/awensley/media-organizer)
 [![SensioLabsInsight](https://img.shields.io/sensiolabs/i/92979f61-8adf-4b59-bd0a-2ddd3169a63c.svg)](https://insight.sensiolabs.com/projects/92979f61-8adf-4b59-bd0a-2ddd3169a63c)
 [![Code Climate Test Coverage](https://codeclimate.com/github/aensley/media-organizer/badges/coverage.svg)](https://codeclimate.com/github/aensley/media-organizer/coverage)
@@ -27,9 +28,9 @@ Detailed description: This library helps organize files into date-based folders.
 
 This was primarily written to organize JPG images, but it will work for files of any type. Available date-retrieval methods are:
 
- 1. **EXIF** - Retrieve the date from the file's EXIF data (JPG and TIFF images only).
- 2. **File Name Masks** - Match date/time patterns in the name of the file.
- 3. **Modified Time** - Use the file's "last modified" time. This property is set by the operating system and is often not as reliable as the first two.
+1. **EXIF** - Retrieve the date from the file's EXIF data (JPG and TIFF images only).
+2. **File Name Masks** - Match date/time patterns in the name of the file.
+3. **Modified Time** - Use the file's "last modified" time. This property is set by the operating system and is often not as reliable as the first two.
 
 ## Installation
 

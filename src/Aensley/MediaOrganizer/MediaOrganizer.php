@@ -3,7 +3,7 @@
 namespace Aensley\MediaOrganizer;
 
 /**
- * Organizes images and videos (or any files, really) into date-based folders.
+ * Organizes images and videos (or any files) into date-based folders.
  *
  * @package Aensley/MediaOrganizer
  * @author  Andrew Ensley
