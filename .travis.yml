@@ -1,28 +1,27 @@
 language: php
 
 php:
-  - 5.2
   - 5.3
   - 5.4
   - 5.5
   - 5.6
   - 7.0
-  - 7.1
   - hhvm
 
-install: composer install --no-interaction
+install: sh -c 'if [ "$TRAVIS_PHP_VERSION" = "7.0" ]; then composer install --no-interaction; else composer install --no-interaction --no-dev; fi;'
 
-before_script: mkdir build/cov
+before_script:
+  - mkdir build
+  - mkdir build/cov
 
-script: phpunit
+script: sh -c 'if [ "$TRAVIS_PHP_VERSION" = "7.0" ]; then phpunit; else phpunit -c phpunit.no-coverage.xml; fi;'
 
 after_success:
   # CodeClimate.com
-  - vendor/bin/test-reporter
+  - sh -c 'if [ "$TRAVIS_PHP_VERSION" = "7.0" ]; then vendor/bin/test-reporter; fi;'
   # Codecov.io
-  - bash <(curl -s https://codecov.io/bash)
+  - sh -c 'if [ "$TRAVIS_PHP_VERSION" = "7.0" ]; then bash <(curl -s https://codecov.io/bash); fi;'
   # Codacy.com
-  - vendor/bin/codacycoverage clover build/logs/clover.xml
+  - sh -c 'if [ "$TRAVIS_PHP_VERSION" = "7.0" ]; then vendor/bin/codacycoverage clover build/logs/clover.xml; fi;'
   # Coveralls.io
-  - php vendor/bin/phpcov.php merge --clover build/logs/clover.xml build/cov
-  - travis_retry php vendor/bin/coveralls -v
+  - sh -c 'if [ "$TRAVIS_PHP_VERSION" = "7.0" ]; then php vendor/bin/phpcov.php merge --clover build/logs/clover.xml build/cov; travis_retry php vendor/bin/coveralls -v; fi;'
