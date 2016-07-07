@@ -16,6 +16,5 @@ after_success:
   # Codacy.com
   - vendor/bin/codacycoverage clover build/logs/clover.xml
   # Coveralls.io
-  - mkdir build/cov
-  - vendor/bin/phpcov merge --clover build/logs/clover.xml build/cov
-  - vendor/bin/coveralls
+  - php vendor/bin/phpcov.php merge --clover build/logs/clover.xml build/cov
+  - travis_retry php vendor/bin/coveralls -v

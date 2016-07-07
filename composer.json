@@ -21,7 +21,7 @@
 		"codacy/coverage": "dev-master",
 		"codeclimate/php-test-reporter": "dev-master",
 		"phpunit/phpcov": "dev-master",
-		"satooshi/php-coveralls": "1.0.x-dev"
+		"satooshi/php-coveralls": "dev-master"
 	},
 	"suggest": {
 		"monolog/monolog": "Advanced logging options",

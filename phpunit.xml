@@ -29,5 +29,6 @@
 		<log type="coverage-html" target="build/coverage-html"/>
 		<log type="coverage-xml" target="build/coverage-xml"/>
 		<log type="coverage-text" target="build/coverage.txt"/>
+		<log type="coverage-php" target="build/cov/coverage.cov"/>
 	</logging>
 </phpunit>
