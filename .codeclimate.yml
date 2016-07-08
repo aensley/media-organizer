@@ -8,13 +8,6 @@ engines:
     enabled: true
   phpmd:
     enabled: true
-    checks:
-      CleanCode/ElseExpression:
-        enabled: false
-      Design/NpathComplexity:
-        enabled: false
-      Design/WeightedMethodCount:
-        enabled: false
   phpcodesniffer:
     enabled: true
     config:
