@@ -3,13 +3,12 @@
 Organize images and videos (or any files) into date-based folders.
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/aensley/media-organizer/blob/master/LICENSE)
+[![Latest Stable Version](https://poser.pugx.org/aensley/media-organizer/v/stable)](https://packagist.org/packages/aensley/media-organizer)
+[![Packagist Downloads](https://img.shields.io/packagist/dt/aensley/media-organizer.svg)](https://packagist.org/packages/aensley/media-organizer)
+[![GitHub Issues](https://img.shields.io/github/issues-raw/aensley/media-organizer.svg)](https://github.com/aensley/media-organizer/issues)
 [![Build Status](https://travis-ci.org/aensley/media-organizer.svg)](https://travis-ci.org/aensley/media-organizer)
 [![Tested Versions Status](https://php-eye.com/badge/aensley/media-organizer/tested.svg?branch=dev-master)](https://php-eye.com/package/aensley/media-organizer)
 [![Dependency Status](https://www.versioneye.com/php/aensley:media-organizer/dev-master/badge)](https://www.versioneye.com/php/aensley:media-organizer)
-[![Reference Status](https://www.versioneye.com/php/aensley:media-organizer/reference_badge.svg)](https://www.versioneye.com/php/aensley:media-organizer/references)
-[![GitHub Issues](https://img.shields.io/github/issues-raw/aensley/media-organizer.svg)](https://github.com/aensley/media-organizer/issues)
-[![Latest Stable Version](https://poser.pugx.org/aensley/media-organizer/v/stable)](https://packagist.org/packages/aensley/media-organizer)
-[![Packagist Downloads](https://img.shields.io/packagist/dt/aensley/media-organizer.svg)](https://packagist.org/packages/aensley/media-organizer)
 
 [![Code Climate Grade](https://codeclimate.com/github/aensley/media-organizer/badges/gpa.svg)](https://codeclimate.com/github/aensley/media-organizer)
 [![Code Climate Issues](https://img.shields.io/codeclimate/issues/github/aensley/media-organizer.svg)](https://codeclimate.com/github/aensley/media-organizer/issues)
