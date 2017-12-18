@@ -21,7 +21,7 @@
 		"codacy/coverage": "dev-master",
 		"codeclimate/php-test-reporter": "dev-master",
 		"phpunit/phpcov": "dev-master",
-		"satooshi/php-coveralls": "~v1.0.0",
+		"satooshi/php-coveralls": "~v1.0.0|~1.1.0",
 		"monolog/monolog": "~1.0"
 	},
 	"suggest": {
