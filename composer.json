@@ -22,7 +22,7 @@
 		"codeclimate/php-test-reporter": "dev-master",
 		"phpunit/phpcov": "dev-master",
 		"satooshi/php-coveralls": "~v1.0.0",
-		"monolog/monolog": "~1.0"
+		"monolog/monolog": "~1.0|~1.0"
 	},
 	"suggest": {
 		"monolog/monolog": "Advanced logging options",
