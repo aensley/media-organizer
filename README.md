@@ -3,11 +3,11 @@
 Organize images and videos (or any files) into date-based folders.
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/aensley/media-organizer/blob/master/LICENSE)
-[![Latest Stable Version](https://poser.pugx.org/aensley/media-organizer/v/stable)](https://packagist.org/packages/aensley/media-organizer)
-[![Packagist Downloads](https://img.shields.io/packagist/dt/aensley/media-organizer)](https://packagist.org/packages/aensley/media-organizer)
 [![Build Status](https://travis-ci.org/aensley/media-organizer.svg)](https://travis-ci.org/aensley/media-organizer)
 [![Maintainability](https://api.codeclimate.com/v1/badges/329a1fe38b276ae65c7e/maintainability)](https://codeclimate.com/github/aensley/media-organizer/maintainability)
 [![Test Coverage](https://api.codeclimate.com/v1/badges/329a1fe38b276ae65c7e/test_coverage)](https://codeclimate.com/github/aensley/media-organizer/test_coverage)
+[![Latest Stable Version](https://poser.pugx.org/aensley/media-organizer/v/stable)](https://packagist.org/packages/aensley/media-organizer)
+[![Packagist Downloads](https://img.shields.io/packagist/dt/aensley/media-organizer)](https://packagist.org/packages/aensley/media-organizer)
 
 ## What it does
 
