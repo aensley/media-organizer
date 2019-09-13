@@ -6,19 +6,10 @@ php:
 
 install: composer install --no-interaction
 
-before_script:
-  - mkdir build
-  - mkdir build/cov
+#before_script:
+#  - mkdir build
+#  - mkdir build/cov
 
 script: phpunit
 
-after_success:
-  # CodeClimate.com
-  #- vendor/bin/test-reporter
-  # Codecov.io
-  #- bash <(curl -s https://codecov.io/bash)
-  # Codacy.com
-  #- vendor/bin/codacycoverage clover build/logs/clover.xml
-  # Coveralls.io
-  #- php vendor/bin/phpcov.php merge --clover build/logs/clover.xml build/cov
-  #- travis_retry php vendor/bin/coveralls -v
+after_success: vendor/bin/test-reporter
