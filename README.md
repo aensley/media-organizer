@@ -4,14 +4,11 @@ Organize images and videos (or any files) into date-based folders.
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/aensley/media-organizer/blob/master/LICENSE)
 [![Latest Stable Version](https://poser.pugx.org/aensley/media-organizer/v/stable)](https://packagist.org/packages/aensley/media-organizer)
-[![Packagist Downloads](https://img.shields.io/packagist/dt/aensley/media-organizer.svg)](https://packagist.org/packages/aensley/media-organizer)
+[![Packagist Downloads](https://img.shields.io/packagist/dt/aensley/media-organizer)](https://packagist.org/packages/aensley/media-organizer)
+[![GitHub Issues](https://img.shields.io/github/issues-raw/aensley/media-organizer)](https://github.com/aensley/media-organizer/issues)
 [![Build Status](https://travis-ci.org/aensley/media-organizer.svg)](https://travis-ci.org/aensley/media-organizer)
-[![GitHub Issues](https://img.shields.io/github/issues-raw/aensley/media-organizer.svg)](https://github.com/aensley/media-organizer/issues)
-
-[![Tested Versions Status](https://php-eye.com/badge/aensley/media-organizer/tested.svg?branch=dev-master)](https://php-eye.com/package/aensley/media-organizer)
-[![Code Climate Grade](https://codeclimate.com/github/aensley/media-organizer/badges/gpa.svg)](https://codeclimate.com/github/aensley/media-organizer)
-[![Code Climate Issues](https://img.shields.io/codeclimate/issues/github/aensley/media-organizer.svg)](https://codeclimate.com/github/aensley/media-organizer/issues)
-[![Code Climate Test Coverage](https://codeclimate.com/github/aensley/media-organizer/badges/coverage.svg)](https://codeclimate.com/github/aensley/media-organizer/coverage)
+[![Maintainability](https://api.codeclimate.com/v1/badges/329a1fe38b276ae65c7e/maintainability)](https://codeclimate.com/github/aensley/media-organizer/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/329a1fe38b276ae65c7e/test_coverage)](https://codeclimate.com/github/aensley/media-organizer/test_coverage)
 
 ## What it does
 
