@@ -43,7 +43,7 @@ Otherwise, you can specify a log level string (one of: 'none', 'error', 'warning
 
 ## Requirements
 
-* PHP >= 5.6
+* PHP >= 7.1
 
 ## Example usage
 
@@ -124,7 +124,3 @@ $organizer = new MediaOrganizer(
 
 $organizer->organize();
 ```
-
-----
-
-[![Supercharged by ZenHub.io](https://raw.githubusercontent.com/ZenHubIO/support/master/zenhub-badge.png)](https://zenhub.io)
