@@ -15,14 +15,11 @@
 		"psr-4": { "Aensley\\": "src/Aensley" }
 	},
 	"require": {
-		"php": ">=5.6.0"
+		"php": ">=7.1"
 	},
 	"require-dev": {
-		"codacy/coverage": "dev-master",
-		"codeclimate/php-test-reporter": "dev-master",
-		"phpunit/phpcov": "dev-master",
-		"satooshi/php-coveralls": "~v1.0.0",
-		"monolog/monolog": "~1.0"
+		"phpunit/phpunit": "~8.0",
+		"monolog/monolog": "~2.0"
 	},
 	"suggest": {
 		"monolog/monolog": "Advanced logging options",
