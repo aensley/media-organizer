@@ -11,6 +11,19 @@
 			"homepage": "https://andrewensley.com"
 		}
 	],
+	"support": {
+        "issues": "https://github.com/aensley/media-organizer/issues"
+    },
+	"funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/aensley"
+        },
+        {
+            "type": "paypal",
+            "url": "https://paypal.me/AndrewEnsley"
+        }
+    ],
 	"autoload": {
 		"psr-4": { "Aensley\\": "src/Aensley" }
 	},
@@ -18,8 +31,9 @@
 		"php": ">=7.1"
 	},
 	"require-dev": {
-		"phpunit/phpunit": "~8.0",
-		"monolog/monolog": "~2.0"
+		"monolog/monolog": "^3.10",
+		"phpunit/phpunit": "^13.1",
+		"squizlabs/php_codesniffer": "^4.0"
 	},
 	"suggest": {
 		"monolog/monolog": "Advanced logging options",

@@ -1,0 +1,6 @@
+/.phpunit.cache/
+/build/
+/coverage/
+/test_data/
+/vendor/
+.phpunit.result.cache
