@@ -207,7 +207,7 @@ class MediaOrganizer
      */
     private function atLeastOneScanOption()
     {
-        return ($this->options['scan_exif'] || $this->options['file_name_masks'] || $this->options['modified_time']);
+        return $this->options['scan_exif'] || $this->options['file_name_masks'] || $this->options['modified_time'];
     }
 
 
@@ -220,12 +220,12 @@ class MediaOrganizer
      */
     private function validMask($mask = '')
     {
-        return (
+        return
             // Must not be empty.
             !empty($mask)
             // Must have at least one of: Y, y, m, or d.
             && (stripos($mask, 'y') !== false || strpos($mask, 'm') !== false || strpos($mask, 'd') !== false)
-        );
+        ;
     }
 
 
@@ -239,12 +239,12 @@ class MediaOrganizer
      */
     private function directoryExistsAndIsWritable($directory = '')
     {
-        return (
+        return
             !empty($directory)
             && (file_exists($directory) || mkdir($directory, 0775, true))
             && is_dir($directory)
             && is_writable($directory)
-        );
+        ;
     }
 
 
@@ -439,7 +439,7 @@ class MediaOrganizer
      */
     private function isReadableFile($file = '')
     {
-        return (!empty($file) && is_file($file) && is_readable($file));
+        return !empty($file) && is_file($file) && is_readable($file);
     }
 
 

@@ -300,6 +300,91 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
         }
     }
 
+    public function testInvalidLoggerString()
+    {
+        $organizer = new MediaOrganizer(array(), 'not_a_valid_level');
+        $this->assertInstanceOf('\Aensley\MediaOrganizer\MediaOrganizer', $organizer);
+    }
+
+    public function testInvalidTargetMask()
+    {
+        $this->resetTestFiles();
+        $profile = $this->profiles['images_exif'];
+        $profile['target_mask'] = 'abc';
+        $this->mediaOrganizer->organize(array('invalid_mask' => $profile));
+        $this->assertFileExists($this->sourceDirectory . 'test_exif_july_5_2016.jpg');
+    }
+
+    public function testNoScanOptions()
+    {
+        $this->resetTestFiles();
+        $profile = array(
+            'source_directory' => $this->sourceDirectory,
+            'target_directory' => $this->targetDirectory,
+            'scan_exif' => false,
+            'file_name_masks' => false,
+            'modified_time' => false,
+        );
+        $this->mediaOrganizer->organize(array('no_scan_options' => $profile));
+        $this->assertFileExists($this->sourceDirectory . 'test_exif_july_5_2016.jpg');
+    }
+
+    public function testOverwrite()
+    {
+        $this->resetTestFiles();
+        $profile = $this->profiles['images_exif'];
+        $profile['overwrite'] = true;
+        $this->mediaOrganizer->organize(array('images_exif' => $profile));
+        $exifTarget = $this->targetDirectory . '2016/2016-07-05/test_exif_july_5_2016.jpg';
+        $this->assertFileExists($exifTarget);
+
+        $this->resetTestFiles(true);
+        $this->mediaOrganizer->organize(array('images_exif' => $profile));
+        $this->assertFileExists($exifTarget);
+        $this->assertFileDoesNotExist($this->targetDirectory . '2016/2016-07-05/test_exif_july_5_2016_0.jpg');
+    }
+
+    public function testAllExtensions()
+    {
+        $this->resetTestFiles();
+        $profile = array(
+            'source_directory' => $this->sourceDirectory,
+            'target_directory' => $this->targetDirectory,
+            'valid_extensions' => array(),
+            'scan_exif' => false,
+            'file_name_masks' => false,
+            'modified_time' => true,
+        );
+        $this->mediaOrganizer->organize(array('all_extensions' => $profile));
+        $this->assertFileDoesNotExist($this->sourceDirectory . 'wrong.extension');
+        $this->assertFileExists($this->targetDirectory . date('Y') . '/' . date('Y-m-d') . '/wrong.extension');
+    }
+
+    public function testSymlinkSkipped()
+    {
+        $this->resetTestFiles();
+        $linkPath = $this->sourceDirectory . 'test_symlink.jpg';
+        symlink($this->sourceDirectory . 'test_exif_july_5_2016.jpg', $linkPath);
+        $this->mediaOrganizer->organize(array('images_exif' => $this->profiles['images_exif']));
+        $this->assertTrue(is_link($linkPath));
+        unlink($linkPath);
+    }
+
+    public function testEchoLogger()
+    {
+        $this->resetTestFiles();
+        $profile = array(
+            'source_directory' => $this->sourceDirectory,
+            'target_directory' => $this->targetDirectory,
+            'scan_exif' => false,
+            'file_name_masks' => false,
+            'modified_time' => false,
+        );
+        $organizer = new MediaOrganizer(array(), 'error');
+        $this->expectOutputRegex('/ERROR/');
+        $organizer->organize(array('no_scan_options' => $profile));
+    }
+
     private function resetTestFiles($sourceOnly = false)
     {
         if (!is_dir($this->sourceDirectory)) {
@@ -310,10 +395,8 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
             mkdir($this->sourceDirectory . 'sub_directory/', 0777, true);
         }
 
-        if (!$sourceOnly) {
-            if (is_dir($this->targetDirectory)) {
-                $this->deleteDirectory($this->targetDirectory);
-            }
+        if (!$sourceOnly && is_dir($this->targetDirectory)) {
+            $this->deleteDirectory($this->targetDirectory);
         }
 
         if (!is_dir($this->targetDirectory)) {

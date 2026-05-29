@@ -12,18 +12,18 @@
 		}
 	],
 	"support": {
-        "issues": "https://github.com/aensley/media-organizer/issues"
-    },
+    "issues": "https://github.com/aensley/media-organizer/issues"
+  },
 	"funding": [
-        {
-            "type": "github",
-            "url": "https://github.com/sponsors/aensley"
-        },
-        {
-            "type": "paypal",
-            "url": "https://paypal.me/AndrewEnsley"
-        }
-    ],
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/aensley"
+    },
+    {
+      "type": "paypal",
+      "url": "https://paypal.me/AndrewEnsley"
+    }
+  ],
 	"autoload": {
 		"psr-4": { "Aensley\\": "src/Aensley" }
 	},
