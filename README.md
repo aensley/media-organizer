@@ -1,13 +1,14 @@
-# MediaOrganizer
+# aensley/media-organizer
+
+[![Version](https://img.shields.io/packagist/v/aensley/media-organizer.svg?logo=packagist&logoColor=fff)][packagist]
+[![License](https://img.shields.io/github/license/aensley/media-organizer.svg)](https://github.com/aensley/media-organizer/blob/master/LICENSE)
+[![Downloads](https://img.shields.io/packagist/dt/aensley/media-organizer.svg?logo=packagist&logoColor=fff)][packagist]
+[![Tests](https://github.com/aensley/media-organizer/actions/workflows/test.yml/badge.svg)](https://github.com/aensley/media-organizer/actions/workflows/test.yml)<br>
+[![Maintainability](https://qlty.sh/gh/aensley/projects/media-organizer/maintainability.svg)][qltysh]
+[![Code Coverage](https://qlty.sh/gh/aensley/projects/media-organizer/coverage.svg)][qltysh]
+[![Socket](https://badge.socket.dev/composer/package/aensley/media-organizer)](https://socket.dev/composer/package/aensley/media-organizer)
 
 Organize images and videos (or any files) into date-based folders.
-
-[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/aensley/media-organizer/blob/master/LICENSE)
-[![Build Status](https://travis-ci.org/aensley/media-organizer.svg)](https://travis-ci.org/aensley/media-organizer)
-[![Maintainability](https://api.codeclimate.com/v1/badges/329a1fe38b276ae65c7e/maintainability)](https://codeclimate.com/github/aensley/media-organizer/maintainability)
-[![Test Coverage](https://api.codeclimate.com/v1/badges/329a1fe38b276ae65c7e/test_coverage)](https://codeclimate.com/github/aensley/media-organizer/test_coverage)
-[![Latest Stable Version](https://poser.pugx.org/aensley/media-organizer/v/stable)](https://packagist.org/packages/aensley/media-organizer)
-[![Packagist Downloads](https://img.shields.io/packagist/dt/aensley/media-organizer)](https://packagist.org/packages/aensley/media-organizer)
 
 ## What it does
 
@@ -124,3 +125,6 @@ $organizer = new MediaOrganizer(
 
 $organizer->organize();
 ```
+
+[packagist]: https://packagist.org/packages/aensley/media-organizer
+[qltysh]: https://qlty.sh/gh/aensley/projects/media-organizer
