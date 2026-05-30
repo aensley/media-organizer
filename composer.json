@@ -1,20 +1,20 @@
 {
-	"name": "aensley/media-organizer",
-	"type": "library",
-	"license": "MIT",
-	"homepage": "https://github.com/aensley/media-organizer/",
-	"description": "Organize images and videos (or any files) into date-based folders.",
-	"keywords": ["media", "image", "video", "jpg", "mp4"],
-	"authors": [
-		{
-			"name": "Andrew Ensley",
-			"homepage": "https://andrewensley.com"
-		}
-	],
-	"support": {
+  "name": "aensley/media-organizer",
+  "type": "library",
+  "license": "MIT",
+  "homepage": "https://github.com/aensley/media-organizer/",
+  "description": "Organize images and videos (or any files) into date-based folders.",
+  "keywords": ["media", "image", "video", "jpg", "mp4"],
+  "authors": [
+    {
+      "name": "Andrew Ensley",
+      "homepage": "https://andrewensley.com"
+    }
+  ],
+  "support": {
     "issues": "https://github.com/aensley/media-organizer/issues"
   },
-	"funding": [
+  "funding": [
     {
       "type": "github",
       "url": "https://github.com/sponsors/aensley"
@@ -24,19 +24,25 @@
       "url": "https://paypal.me/AndrewEnsley"
     }
   ],
-	"autoload": {
-		"psr-4": { "Aensley\\": "src/Aensley" }
-	},
-	"require": {
-		"php": ">=7.1"
-	},
-	"require-dev": {
-		"monolog/monolog": "^3.10",
-		"phpunit/phpunit": "^13.1",
-		"squizlabs/php_codesniffer": "^4.0"
-	},
-	"suggest": {
-		"monolog/monolog": "Advanced logging options",
-		"bramus/monolog-colored-line-formatter": "Colored log output in bash"
-	}
+  "autoload": {
+    "psr-4": { "Aensley\\": "src/Aensley" }
+  },
+  "scripts": {
+    "lint": "./vendor/bin/phpcs",
+    "lint:fix": "./vendor/bin/phpcbf",
+    "test": "./vendor/bin/phpunit --coverage-clover coverage/clover.xml"
+  },
+  "require": {
+    "php": ">=7.1",
+    "aensley/file": "^2.0"
+  },
+  "require-dev": {
+    "monolog/monolog": "^3.10",
+    "phpunit/phpunit": "^13.1",
+    "squizlabs/php_codesniffer": "^4.0"
+  },
+  "suggest": {
+    "monolog/monolog": "Advanced logging options",
+    "bramus/monolog-colored-line-formatter": "Colored log output in bash"
+  }
 }

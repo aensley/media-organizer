@@ -34,13 +34,15 @@ composer require aensley/media-organizer
 
 ### Profiles
 
-You can specify any number of profiles to process. They will be processed in order. Each profile can have its own separate options. Available options are [documented in the code](https://github.com/aensley/media-organizer/blob/master/src/Aensley/MediaOrganizer/MediaOrganizer.php#L14).
+You can specify any number of profiles to process. They will be processed in order. Each profile can have its own separate options. Available options are [documented in the code here](https://github.com/aensley/media-organizer/blob/main/src/Aensley/MediaOrganizer/MediaOrganizer.php#L16:L45).
 
 ### Logger
 
-You can specify a logger object implementing the [PRS-3 Logger Interface](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-3-logger-interface.md) for custom handling of log messages. I recommend [Monolog](https://github.com/Seldaek/monolog) (and [monolog-colored-line-formatter](https://github.com/bramus/monolog-colored-line-formatter) for bonus points in bash).
+You can specify a logger object implementing the [PRS-3 Logger Interface](https://github.com/php-fig/fig-standards/blob/master/accepted/PSR-3-logger-interface.md) for handling of log messages.
 
-Otherwise, you can specify a log level string (one of: 'none', 'error', 'warning', 'info', 'debug') to use the simple internal logger. The internal logger directly echoes messages followed by newline characters `\n`.
+I recommend [Monolog](https://github.com/Seldaek/monolog) (and [monolog-colored-line-formatter](https://github.com/bramus/monolog-colored-line-formatter) for bonus points in bash).
+
+If no logger is provided, the package will simply echo all log messages directly.
 
 ## Requirements
 
@@ -56,20 +58,19 @@ Otherwise, you can specify a log level string (one of: 'none', 'error', 'warning
 require '/path/to/composer/autoload.php';
 
 $organizer = new \Aensley\MediaOrganizer\MediaOrganizer(
-	array(
-		'images' => array(
-			'source_directory' => '/data/unorganized_pictures/',
-			'target_directory' => '/data/Organized/Pictures/',
-			'valid_extensions' => array('jpg'),
-		),
-		'videos' => array(
-			'source_directory' => '/data/unorganized_videos/',
-			'target_directory' => '/data/Organized/Videos/',
-			'valid_extensions' => array('mp4'),
-			'scan_exif' => false,
-		),
-	),
-	'debug'
+    [
+        'images' => [
+            'source_directory' => '/data/unorganized_pictures/',
+            'target_directory' => '/data/Organized/Pictures/',
+            'valid_extensions' => ['jpg'],
+        ],
+        'videos' => [
+            'source_directory' => '/data/unorganized_videos/',
+            'target_directory' => '/data/Organized/Videos/',
+            'valid_extensions' => ['mp4'],
+            'scan_exif' => false,
+        ],
+    ]
 );
 
 $organizer->organize();
@@ -96,31 +97,31 @@ $logger->pushHandler($handler);
 $logger->pushHandler(new StreamHandler('/var/log/mediaOrganizer/mediaOrganizer.log', Logger::DEBUG));
 
 $organizer = new MediaOrganizer(
-	array(
-		'images' => array(
-			'source_directory' => '/data/unorganized_pictures/',
-			'target_directory' => '/data/Organized/Pictures/',
-			'valid_extensions' => array('jpg'),
-		),
-		'videos' => array(
-			'source_directory' => '/data/unorganized_videos/',
-			'target_directory' => '/data/Organized/Videos/',
-			'valid_extensions' => array('mp4'),
-			'scan_exif' => false,
-		),
-		'gifs' => array(
-			'source_directory' => '/data/unorganized_gifs/',
-			'target_directory' => '/data/Organized/Gifs/',
-			'valid_extensions' => array('gif'),
-			'scan_exif' => false,
-			'file_name_masks' => false,
-			'modified_time' => true,
-			'search_recursive' => true,
-			'target_mask' => 'Y/F/d',
-			'overwrite' => true,
-		),
-	),
-	$logger
+    [
+        'images' => [
+            'source_directory' => '/data/unorganized_pictures/',
+            'target_directory' => '/data/Organized/Pictures/',
+            'valid_extensions' => ['jpg'],
+        ],
+        'videos' => [
+            'source_directory' => '/data/unorganized_videos/',
+            'target_directory' => '/data/Organized/Videos/',
+            'valid_extensions' => ['mp4'],
+            'scan_exif' => false,
+        ],
+        'gifs' => [
+            'source_directory' => '/data/unorganized_gifs/',
+            'target_directory' => '/data/Organized/Gifs/',
+            'valid_extensions' => ['gif'],
+            'scan_exif' => false,
+            'file_name_masks' => false,
+            'modified_time' => true,
+            'search_recursive' => true,
+            'target_mask' => 'Y/F/d',
+            'overwrite' => true,
+        ],
+    ],
+    $logger
 );
 
 $organizer->organize();
