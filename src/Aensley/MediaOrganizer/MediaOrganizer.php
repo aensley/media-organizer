@@ -184,17 +184,16 @@ class MediaOrganizer
             }
         }
 
-        if (!$this->validMask($options['target_mask'])) {
+        $maskValid = $this->validMask($options['target_mask']);
+        $scanValid = $options['scan_exif'] || $options['file_name_masks'] || $options['modified_time'];
+
+        if (!$maskValid) {
             $this->log('error', 'Invalid or empty target mask.');
-            return false;
-        }
-
-        if (!$options['scan_exif'] && !$options['file_name_masks'] && !$options['modified_time']) {
+        } elseif (!$scanValid) {
             $this->log('error', 'No scanning options enabled. Please check the profile options.');
-            return false;
         }
 
-        return true;
+        return $maskValid && $scanValid;
     }
 
 
