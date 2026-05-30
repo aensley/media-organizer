@@ -2,6 +2,9 @@ name: test
 
 on: push
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Test
@@ -21,9 +24,9 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction
       - name: Lint
-        run: ./vendor/bin/phpcs
+        run: composer lint
       - name: Test
-        run: ./vendor/bin/phpunit --coverage-clover coverage/clover.xml
+        run: composer test
       - name: Report Coverage
         uses: qltysh/qlty-action/coverage@v2
         with:
