@@ -34,7 +34,7 @@
   },
   "require": {
     "php": ">=7.1",
-    "aensley/file": "^2.0"
+    "aensley/file": "^2.0.1"
   },
   "require-dev": {
     "monolog/monolog": "^3.10",
