@@ -19,28 +19,33 @@ class MediaOrganizer
      * @var array
      */
     private $defaults = [
-        // Directory to search for files. Must be set. Ending slash required.
+        // REQUIRED: Directory to search for files. Ending slash required.
         'source_directory' => '',
         // Set to true to look in all subdirectories of source_directory for files.
         'search_recursive' => false,
-        // Array of file extensions to search for. Leave empty to include all files.
+        // Array of file extensions to search for. Set to an empty array to include all files.
         'valid_extensions' => ['jpg', 'jpeg'],
-        // Parent directory to place moved files in. Must be set. Ending slash required.
+        // REQUIRED: Parent directory to place moved files in. Ending slash required.
         'target_directory' => '',
-        // Directory structure to use for target. Must be set.
+        // REQUIRED: Directory structure to use for target.
         // Y = 4-digit year, y = 2-digit year, m = 2-digit month, d = 2-digit day
-        // Anything from http://php.net/date will work, except time-based options as they will not be consistent.
+        // Anything supported by http://php.net/date will work, except time-based options which will not be consistent.
         'target_mask' => 'Y/Y-m-d',
+        // Whether to overwrite destination files.
         // true = overwrite same files that already exist in target.
-        // false = add incrementing counter to same file names until there's no collision.
+        // false = add incrementing counter to identical file names to avoid collisions.
         'overwrite' => false,
-        // Scan exif data for date? Only valid for JPEG or TIFF image files.
+        // DATE RETRIEVAL METHOD: Scan EXIF data for file date.
+        // Supports image files (JPG, TIFF, HEIC, WEBP, etc.).
         'scan_exif' => true,
-        // Pattern to search for in file names for date. Set to false to disable filename logic.
-        // Only runs if scan_exif is disabled or fails.
+        // DATE RETRIEVAL METHOD: Scan metadata via getid3 for file date.
+        // Supports video files (MP4, MOV, MKV, AVI, etc.) and
+        // audio files (MP3, FLAC, OGG, etc.).
+        'scan_id3' => false,
+        // DATE RETRIEVAL METHOD: Patterns to search for in file names for date. Set to false to disable filename logic.
         // Y = year digit, M = month digit, D = day digit. All are replaced with digits for regex search.
-        'file_name_masks' => ['YYYYMMDD', 'YYYY-MM-DD'],
-        // Whether or not to use the file's modified time if both scan_exif and file_name_masks are disabled or fail.
+        'file_name_masks' => ['YYYY-MM-DD', 'YYYYMMDD'],
+        // DATE RETRIEVAL METHOD: Whether or not to use the file's modified time.
         'modified_time' => false,
     ];
 
@@ -170,7 +175,7 @@ class MediaOrganizer
      *
      * @return bool
      */
-    private function validOptions($options)
+    private function validOptions(array &$options)
     {
         foreach (['source_directory' => 'Source', 'target_directory' => 'Target'] as $key => $label) {
             $dir = $options[$key];
@@ -184,8 +189,14 @@ class MediaOrganizer
             }
         }
 
+        if ($options['scan_id3'] && !class_exists('\getID3')) {
+            $this->log('error', 'getID3 class not found. Install james-heinrich/getid3 to use scan_id3.');
+            $options['scan_id3'] = false;
+        }
+
         $maskValid = $this->validMask($options['target_mask']);
-        $scanValid = $options['scan_exif'] || $options['file_name_masks'] || $options['modified_time'];
+        $scanValid = $options['scan_exif'] || $options['scan_id3']
+            || $options['file_name_masks'] || $options['modified_time'];
 
         if (!$maskValid) {
             $this->log('error', 'Invalid or empty target mask.');
@@ -231,6 +242,13 @@ class MediaOrganizer
             $date = File::exifDateTime($file, 'Y-m-d');
             if ($date) {
                 $this->log('debug', 'Date retrieved from EXIF data.');
+            }
+        }
+
+        if (!$date && $options['scan_id3']) {
+            $date = $this->getGetId3Date($file);
+            if ($date) {
+                $this->log('debug', 'Date retrieved from getid3 metadata.');
             }
         }
 
@@ -288,6 +306,68 @@ class MediaOrganizer
         }
 
         return '';
+    }
+
+
+    /**
+     * Gets the file date using getid3 metadata analysis.
+     *
+     * Supports QuickTime/MP4/MOV container creation time, Matroska/MKV/WebM DateUTC,
+     * and tagged formats (ID3v2 recording_time, Vorbis date, RIFF creation date, etc.).
+     *
+     * @param string $file The absolute path to the file to check.
+     *
+     * @return string The date in YYYY-MM-DD format if found. Empty string if not.
+     */
+    private function getGetId3Date($file)
+    {
+        $getId3 = new \getID3();
+        $info   = $getId3->analyze($file);
+        $date   = '';
+
+        // QuickTime/MP4/MOV: movie-header creation time atom
+        if (!$date && !empty($info['quicktime']['timestamps_unix']['create'])) {
+            $timestamps = $info['quicktime']['timestamps_unix']['create'];
+            // moov.mvhd is the movie-level atom; fall back to first available
+            $ts = $timestamps['moov.mvhd'] ?? reset($timestamps);
+            if ($ts > 0) {
+                $date = date('Y-m-d', $ts);
+            }
+        }
+
+        // Matroska/MKV/WebM: segment DateUTC
+        if (!$date && !empty($info['matroska']['info'])) {
+            foreach ($info['matroska']['info'] as $segment) {
+                if (!empty($segment['DateUTC_unix']) && $segment['DateUTC_unix'] > 0) {
+                    $date = date('Y-m-d', $segment['DateUTC_unix']);
+                    break;
+                }
+            }
+        }
+
+        // Tagged formats (ID3v2, Vorbis, RIFF, APE, etc.): comments merged by analyze()
+        foreach (['recording_time', 'date', 'creationdate', 'digitizationdate'] as $tagKey) {
+            if ($date) {
+                break;
+            }
+
+            if (!empty($info['comments'][$tagKey][0])) {
+                $ts = strtotime($info['comments'][$tagKey][0]);
+                if ($ts !== false && $ts > 0) {
+                    $date = date('Y-m-d', $ts);
+                }
+            }
+        }
+
+        // Year-only tag (e.g. ID3v1 TYER): file sorts into correct year folder
+        if (!$date && !empty($info['comments']['year'][0])) {
+            $year = trim($info['comments']['year'][0]);
+            if (preg_match('/^\d{4}$/', $year)) {
+                $date = $year . '-01-01';
+            }
+        }
+
+        return $date;
     }
 
 

@@ -3,8 +3,32 @@
   "type": "library",
   "license": "MIT",
   "homepage": "https://github.com/aensley/media-organizer/",
-  "description": "Organize images and videos (or any files) into date-based folders.",
-  "keywords": ["media", "image", "video", "jpg", "mp4"],
+  "description": "Organize image, video, and audio files (or any files) into date-based folders.",
+  "keywords": [
+    "media",
+    "image",
+    "video",
+    "audio",
+    "jpg",
+    "jpeg",
+    "tiff",
+    "heif",
+    "heic",
+    "webp",
+    "dng",
+    "avif",
+    "png",
+    "mp4",
+    "mov",
+    "mkv",
+    "webm",
+    "mp3",
+    "riff",
+    "avi",
+    "vorbis",
+    "flac",
+    "ogg"
+  ],
   "authors": [
     {
       "name": "Andrew Ensley",
@@ -25,16 +49,19 @@
     }
   ],
   "autoload": {
-    "psr-4": { "Aensley\\": "src/Aensley" }
+    "psr-4": {
+      "Aensley\\": "src/Aensley"
+    }
   },
   "scripts": {
     "lint": "./vendor/bin/phpcs",
     "lint:fix": "./vendor/bin/phpcbf",
-    "test": "./vendor/bin/phpunit --coverage-clover coverage/clover.xml"
+    "test": "./vendor/bin/phpunit --coverage-clover coverage/clover.xml",
+    "update:all": "composer outdated --direct --format=json | jq -r '.installed[] | \"\\(.name):\\(.latest)\"' | xargs composer require"
   },
   "require": {
     "php": ">=7.1",
-    "aensley/file": "^2.0.1"
+    "aensley/file": "v2.0.2"
   },
   "require-dev": {
     "monolog/monolog": "^3.10",
@@ -42,6 +69,7 @@
     "squizlabs/php_codesniffer": "^4.0"
   },
   "suggest": {
+    "james-heinrich/getid3": "Advanced date extraction capabilities for video and audio files.",
     "monolog/monolog": "Advanced logging options",
     "bramus/monolog-colored-line-formatter": "Colored log output in bash"
   }
