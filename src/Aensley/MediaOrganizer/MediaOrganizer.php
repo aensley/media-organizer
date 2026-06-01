@@ -25,7 +25,7 @@ class MediaOrganizer
         'search_recursive' => false,
         // Array of file extensions to search for. Set to an empty array to include all files.
         'valid_extensions' => ['jpg', 'jpeg'],
-        // REQUIRED: Parent directory to place moved files in. Ending slash required.
+        // REQUIRED: Destination directory for organized files. Ending slash required.
         'target_directory' => '',
         // REQUIRED: Directory structure to use for target.
         // Y = 4-digit year, y = 2-digit year, m = 2-digit month, d = 2-digit day
@@ -117,28 +117,42 @@ class MediaOrganizer
         }
 
         foreach ($profiles as $name => $profile) {
-            $this->log('info', 'Processing profile: ' . $name);
-            $options = array_merge($this->defaults, $profile);
-            if ($this->validOptions($options)) {
-                $files = Directory::listFiles(
-                    $options['source_directory'],
-                    $options['search_recursive'],
-                    $options['valid_extensions']
-                );
-                $count = count($files);
-                $succeeded = 0;
-                $filesWord = 'file' . ($count === 1 ? '' : 's');
-                $this->log('debug', $count . ' ' . $filesWord . ' found.');
-                foreach ($files as $file) {
-                    $this->log('info', 'Processing: ' . $file);
-                    if ($this->processFile($file, $options)) {
-                        $succeeded++;
-                    }
-                }
+            $this->processProfile($name, $profile);
+        }
+    }
 
-                $this->log('info', $succeeded . ' of ' . $count . ' ' . $filesWord . ' moved.');
+
+    /**
+     * Processes a single profile: validates options, lists files, and moves each one.
+     *
+     * @param string $name    The profile name, used for logging.
+     * @param array  $profile The raw profile options (merged with defaults internally).
+     */
+    private function processProfile(string $name, array $profile): void
+    {
+        $this->log('info', 'Processing profile: ' . $name);
+        $options = array_merge($this->defaults, $profile);
+        if (!$this->validOptions($options)) {
+            return;
+        }
+
+        $files     = Directory::listFiles(
+            $options['source_directory'],
+            $options['search_recursive'],
+            $options['valid_extensions']
+        );
+        $count     = count($files);
+        $succeeded = 0;
+        $filesWord = 'file' . ($count === 1 ? '' : 's');
+        $this->log('debug', $count . ' ' . $filesWord . ' found.');
+        foreach ($files as $file) {
+            $this->log('info', 'Processing: ' . $file);
+            if ($this->processFile($file, $options)) {
+                $succeeded++;
             }
         }
+
+        $this->log('info', $succeeded . ' of ' . $count . ' ' . $filesWord . ' moved.');
     }
 
 
@@ -323,51 +337,94 @@ class MediaOrganizer
     {
         $getId3 = new \getID3();
         $info   = $getId3->analyze($file);
-        $date   = '';
 
-        // QuickTime/MP4/MOV: movie-header creation time atom
-        if (!$date && !empty($info['quicktime']['timestamps_unix']['create'])) {
-            $timestamps = $info['quicktime']['timestamps_unix']['create'];
-            // moov.mvhd is the movie-level atom; fall back to first available
-            $ts = $timestamps['moov.mvhd'] ?? reset($timestamps);
-            if ($ts > 0) {
-                $date = date('Y-m-d', $ts);
+        return $this->getQuickTimeDate($info)
+            ?: $this->getMatroskaDate($info)
+            ?: $this->getTaggedCommentDate($info)
+            ?: $this->getYearTagDate($info);
+    }
+
+
+    /**
+     * Extracts a date from QuickTime/MP4/MOV movie-header creation time atom.
+     *
+     * @param array $info getID3 analysis result.
+     *
+     * @return string The date in YYYY-MM-DD format if found. Empty string if not.
+     */
+    private function getQuickTimeDate(array $info): string
+    {
+        if (empty($info['quicktime']['timestamps_unix']['create'])) {
+            return '';
+        }
+
+        $timestamps = $info['quicktime']['timestamps_unix']['create'];
+        // moov.mvhd is the movie-level atom; fall back to first available
+        $ts = $timestamps['moov.mvhd'] ?? reset($timestamps);
+        return $ts > 0 ? date('Y-m-d', $ts) : '';
+    }
+
+
+    /**
+     * Extracts a date from Matroska/MKV/WebM segment DateUTC.
+     *
+     * @param array $info getID3 analysis result.
+     *
+     * @return string The date in YYYY-MM-DD format if found. Empty string if not.
+     */
+    private function getMatroskaDate(array $info): string
+    {
+        if (empty($info['matroska']['info'])) {
+            return '';
+        }
+
+        foreach ($info['matroska']['info'] as $segment) {
+            if (!empty($segment['DateUTC_unix']) && $segment['DateUTC_unix'] > 0) {
+                return date('Y-m-d', $segment['DateUTC_unix']);
             }
         }
 
-        // Matroska/MKV/WebM: segment DateUTC
-        if (!$date && !empty($info['matroska']['info'])) {
-            foreach ($info['matroska']['info'] as $segment) {
-                if (!empty($segment['DateUTC_unix']) && $segment['DateUTC_unix'] > 0) {
-                    $date = date('Y-m-d', $segment['DateUTC_unix']);
-                    break;
-                }
-            }
-        }
+        return '';
+    }
 
-        // Tagged formats (ID3v2, Vorbis, RIFF, APE, etc.): comments merged by analyze()
+
+    /**
+     * Extracts a date from tagged format comments (ID3v2, Vorbis, RIFF, APE, etc.).
+     *
+     * @param array $info getID3 analysis result.
+     *
+     * @return string The date in YYYY-MM-DD format if found. Empty string if not.
+     */
+    private function getTaggedCommentDate(array $info): string
+    {
         foreach (['recording_time', 'date', 'creationdate', 'digitizationdate'] as $tagKey) {
-            if ($date) {
-                break;
-            }
-
             if (!empty($info['comments'][$tagKey][0])) {
                 $ts = strtotime($info['comments'][$tagKey][0]);
                 if ($ts !== false && $ts > 0) {
-                    $date = date('Y-m-d', $ts);
+                    return date('Y-m-d', $ts);
                 }
             }
         }
 
-        // Year-only tag (e.g. ID3v1 TYER): file sorts into correct year folder
-        if (!$date && !empty($info['comments']['year'][0])) {
-            $year = trim($info['comments']['year'][0]);
-            if (preg_match('/^\d{4}$/', $year)) {
-                $date = $year . '-01-01';
-            }
+        return '';
+    }
+
+
+    /**
+     * Extracts a date from a year-only tag (e.g. ID3v1 TYER), defaulting to Jan 1.
+     *
+     * @param array $info getID3 analysis result.
+     *
+     * @return string The date in YYYY-01-01 format if found. Empty string if not.
+     */
+    private function getYearTagDate(array $info): string
+    {
+        if (empty($info['comments']['year'][0])) {
+            return '';
         }
 
-        return $date;
+        $year = trim($info['comments']['year'][0]);
+        return preg_match('/^\d{4}$/', $year) ? $year . '-01-01' : '';
     }
 
 

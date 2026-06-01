@@ -16,7 +16,7 @@ Organize image, video, and audio files (or any files) into date-based folders.
 
 `media-organizer` helps organize files into date-based folders. The date is retrieved from each file in a number of configurable ways. The structure of the date-based folders can be designed any way you want.
 
-Primarily written to organize JPG images will work for files of any type.
+Although primarily written to organize JPG images, this library will work for files of any type.
 
 ### Date Retrieval Methods
 
@@ -37,26 +37,38 @@ Install the latest version
 composer require aensley/media-organizer
 ```
 
-## Options
+## Configuration
 
 ### Profiles
 
-You can specify any number of profiles to process. They will be processed in order. Each profile can have its own separate options. Available options are [documented in the code here](https://github.com/aensley/media-organizer/blob/main/src/Aensley/MediaOrganizer/MediaOrganizer.php#L16:L48).
+Profiles are defined in associative arrays.
+
+```php
+[
+    'images' => [
+        'source_directory' => '/data/unorganized_pictures/',
+        'target_directory' => '/data/Organized/Pictures/',
+        'valid_extensions' => ['jpg'],
+    ],
+]
+```
+
+You can specify any number of profiles. each is processed in order with its own options.
 
 #### Profile Options
 
-| Option               | Description                                                                                                                                                                                                                                                                           | Default                      |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| **source_directory** | **REQUIRED**: Directory to search for files.<br>Ending slash required.                                                                                                                                                                                                                | `""`                         |
-| **search_recursive** | Set to true to look in all subdirectories of source_directory for files.                                                                                                                                                                                                              | `false`                      |
-| **valid_extensions** | Array of file extensions to search for.<br>Set to an empty array (`[]`) to include all files.                                                                                                                                                                                         | `['jpg', 'jpeg']`            |
-| **target_directory** | **REQUIRED**: Parent directory to place moved files in.<br>Ending slash required.                                                                                                                                                                                                     | `""`                         |
-| **target_mask**      | **REQUIRED**: Directory structure to use for target.<br><br>**Y** = 4-digit year, **y** = 2-digit year, **m** = 2-digit month, **d** = 2-digit day.<br><br>Anything supported by [`date()`](http://php.net/date) will work, except time-based options as they will not be consistent. | `"Y/Y-m-d"`                  |
-| **overwrite**        | Whether to overwrite destination files.<br>**true** = overwrite same files that already exist in target.<br>**false** = add incrementing counter to identical file names to avoid collisions.                                                                                         | `false`                      |
-| **scan_exif**        | **Date Retrieval Method**: Scan EXIF data for file date.<br><br>Supports image files (JPG, TIFF, HEIC, WEBP, etc.).                                                                                                                                                                   | `true`                       |
-| **scan_id3**         | **Date Retrieval Method**: Scan metadata via [getid3](#getid3) for file date.<br><br>Supports video files (MP4, MOV, MKV, AVI, etc.) and audio files (MP3, FLAC, OGG, etc.).                                                                                                          | `false`                      |
-| **file_name_masks**  | **Date Retrieval Method**: Patterns to search for in file names for date. Set to `false` to disable filename logic.<br><br>**Y** = year digit, **M** = month digit, **D** = day digit. All are replaced with digits for regex search.                                                 | `['YYYY-MM-DD', 'YYYYMMDD']` |
-| **modified_time**    | **Date Retrieval Method**: Whether or not to use the file's modified time.                                                                                                                                                                                                            | `false`                      |
+| Option               | Description                                                                                                                                                                                                                                                             | Default                      |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| **source_directory** | **REQUIRED**: Directory to search for files.<br>Ending slash required.                                                                                                                                                                                                  | `""`                         |
+| search_recursive     | Set to true to look in all subdirectories of source_directory for files.                                                                                                                                                                                                | `false`                      |
+| valid_extensions     | Array of file extensions to search for.<br>Set to an empty array (`[]`) to include all files.                                                                                                                                                                           | `['jpg', 'jpeg']`            |
+| **target_directory** | **REQUIRED**: Destination directory for organized files.<br>Ending slash required.                                                                                                                                                                                      | `""`                         |
+| target_mask          | Directory structure to use for target.<br><br>**Y** = 4-digit year, **y** = 2-digit year, **m** = 2-digit month, **d** = 2-digit day.<br><br>Anything supported by [`date()`](http://php.net/date) will work, except time-based options as they will not be consistent. | `"Y/Y-m-d"`                  |
+| overwrite            | Whether to overwrite destination files.<br>**true** = overwrite same files that already exist in target.<br>**false** = add incrementing counter to identical file names to avoid collisions.                                                                           | `false`                      |
+| scan_exif            | **Date Retrieval Method**: Scan EXIF data for file date.<br><br>Supports image files (JPG, TIFF, HEIC, WEBP, etc.).                                                                                                                                                     | `true`                       |
+| scan_id3             | **Date Retrieval Method**: Scan metadata via [getid3](#getid3) for file date.<br><br>Supports video files (MP4, MOV, MKV, AVI, etc.) and audio files (MP3, FLAC, OGG, etc.).                                                                                            | `false`                      |
+| file_name_masks      | **Date Retrieval Method**: Patterns to search for in file names for date. Set to `false` to disable filename logic.<br><br>**Y** = year digit, **M** = month digit, **D** = day digit. All are replaced with digits for regex search.                                   | `['YYYY-MM-DD', 'YYYYMMDD']` |
+| modified_time        | **Date Retrieval Method**: Whether or not to use the file's modified time.                                                                                                                                                                                              | `false`                      |
 
 ### GetID3
 
@@ -159,6 +171,7 @@ $organizer = new MediaOrganizer(
             'target_directory' => '/data/Organized/Videos/',
             'valid_extensions' => ['mp4'],
             'scan_exif' => false,
+            'scan_id3' => true,
         ],
         'gifs' => [
             'source_directory' => '/data/unorganized_gifs/',

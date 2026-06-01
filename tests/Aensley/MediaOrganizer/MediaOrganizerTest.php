@@ -379,6 +379,158 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
         unlink($linkPath);
     }
 
+    public function testScanId3MissingClass(): void
+    {
+        $profile = [
+            'source_directory' => $this->sourceDirectory,
+            'target_directory' => $this->targetDirectory,
+            'scan_id3'         => true,
+            'scan_exif'        => false,
+            'file_name_masks'  => false,
+            'modified_time'    => false,
+        ];
+        $organizer = new MediaOrganizer();
+        $this->expectOutputRegex('/getID3/');
+        $organizer->organize(['scan_id3_missing' => $profile]);
+    }
+
+    public function testFileMaskUnknownFallback(): void
+    {
+        $this->assertSame('2016-07-05', $this->invokePrivate('fileMask', 'photo_20160705', 'UNKNOWN_MASK'));
+    }
+
+    public function testUnreadableFileSkipped(): void
+    {
+        if (posix_geteuid() === 0) {
+            $this->markTestSkipped('Cannot test unreadable files as root.');
+        }
+
+        $this->resetTestFiles();
+        $file = $this->sourceDirectory . 'test_exif_july_5_2016.jpg';
+        chmod($file, 0000);
+        $this->mediaOrganizer->organize(['images_exif' => $this->profiles['images_exif']]);
+        $this->assertFileExists($file);
+        $this->assertFileDoesNotExist($this->targetDirectory . '2016/2016-07-05/test_exif_july_5_2016.jpg');
+        chmod($file, 0644);
+    }
+
+    public function testSetLogger(): void
+    {
+        $this->expectNotToPerformAssertions();
+        $this->mediaOrganizer->setLogger($this->createLogger());
+    }
+
+    public function testGetQuickTimeDateEmpty(): void
+    {
+        $this->assertSame('', $this->invokePrivate('getQuickTimeDate', []));
+    }
+
+    public function testGetQuickTimeDateMoovMvhd(): void
+    {
+        $ts   = mktime(0, 0, 0, 7, 5, 2016);
+        $info = ['quicktime' => ['timestamps_unix' => ['create' => ['moov.mvhd' => $ts]]]];
+        $this->assertSame('2016-07-05', $this->invokePrivate('getQuickTimeDate', $info));
+    }
+
+    public function testGetQuickTimeDateFallbackKey(): void
+    {
+        $ts   = mktime(0, 0, 0, 7, 5, 2016);
+        $info = ['quicktime' => ['timestamps_unix' => ['create' => ['trak.tkhd' => $ts]]]];
+        $this->assertSame('2016-07-05', $this->invokePrivate('getQuickTimeDate', $info));
+    }
+
+    public function testGetQuickTimeDateZeroTimestamp(): void
+    {
+        $info = ['quicktime' => ['timestamps_unix' => ['create' => ['moov.mvhd' => 0]]]];
+        $this->assertSame('', $this->invokePrivate('getQuickTimeDate', $info));
+    }
+
+    public function testGetMatroskaDateEmpty(): void
+    {
+        $this->assertSame('', $this->invokePrivate('getMatroskaDate', []));
+    }
+
+    public function testGetMatroskaDateValid(): void
+    {
+        $ts   = mktime(0, 0, 0, 7, 5, 2016);
+        $info = ['matroska' => ['info' => [['DateUTC_unix' => $ts]]]];
+        $this->assertSame('2016-07-05', $this->invokePrivate('getMatroskaDate', $info));
+    }
+
+    public function testGetMatroskaDateSkipsZeroSegment(): void
+    {
+        $ts   = mktime(0, 0, 0, 7, 5, 2016);
+        $info = ['matroska' => ['info' => [['DateUTC_unix' => 0], ['DateUTC_unix' => $ts]]]];
+        $this->assertSame('2016-07-05', $this->invokePrivate('getMatroskaDate', $info));
+    }
+
+    public function testGetMatroskaDateNoValid(): void
+    {
+        $info = ['matroska' => ['info' => [['other_key' => 123]]]];
+        $this->assertSame('', $this->invokePrivate('getMatroskaDate', $info));
+    }
+
+    public function testGetTaggedCommentDateEmpty(): void
+    {
+        $this->assertSame('', $this->invokePrivate('getTaggedCommentDate', []));
+    }
+
+    /**
+     * @return array<string, array<int, mixed>>
+     */
+    public static function taggedCommentProvider(): array
+    {
+        return [
+            'recording_time'    => ['recording_time',    '2016-07-05'],
+            'date'              => ['date',              '2016-07-05'],
+            'creationdate'      => ['creationdate',      '2016-07-05'],
+            'digitizationdate'  => ['digitizationdate',  '2016-07-05'],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('taggedCommentProvider')]
+    public function testGetTaggedCommentDateKeys(string $tagKey, string $expected): void
+    {
+        $info = ['comments' => [$tagKey => ['2016-07-05']]];
+        $this->assertSame($expected, $this->invokePrivate('getTaggedCommentDate', $info));
+    }
+
+    public function testGetTaggedCommentDateUnparseable(): void
+    {
+        $info = ['comments' => ['recording_time' => ['not-a-date']]];
+        $this->assertSame('', $this->invokePrivate('getTaggedCommentDate', $info));
+    }
+
+    public function testGetTaggedCommentDateFallsThrough(): void
+    {
+        $ts   = mktime(0, 0, 0, 7, 5, 2016);
+        $info = ['comments' => ['recording_time' => ['not-a-date'], 'date' => [date('Y-m-d', $ts)]]];
+        $this->assertSame('2016-07-05', $this->invokePrivate('getTaggedCommentDate', $info));
+    }
+
+    public function testGetYearTagDateEmpty(): void
+    {
+        $this->assertSame('', $this->invokePrivate('getYearTagDate', []));
+    }
+
+    public function testGetYearTagDateValid(): void
+    {
+        $info = ['comments' => ['year' => ['2016']]];
+        $this->assertSame('2016-01-01', $this->invokePrivate('getYearTagDate', $info));
+    }
+
+    public function testGetYearTagDateNonFourDigit(): void
+    {
+        $this->assertSame('', $this->invokePrivate('getYearTagDate', ['comments' => ['year' => ['16']]]));
+        $this->assertSame('', $this->invokePrivate('getYearTagDate', ['comments' => ['year' => ['abc']]]));
+    }
+
+    private function invokePrivate(string $method, mixed ...$args): mixed
+    {
+        $ref = new \ReflectionMethod($this->mediaOrganizer, $method);
+        return $ref->invoke($this->mediaOrganizer, ...$args);
+    }
+
     private function createLogger(): Logger
     {
         $logger = new Logger('test');
