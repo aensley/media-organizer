@@ -2,6 +2,7 @@
 <ruleset name="php-file">
     <file>src</file>
     <file>tests</file>
+    <exclude-pattern>tests/*/stubs/*</exclude-pattern>
     <arg name="basepath" value="."/>
     <arg name="colors"/>
     <arg value="sp"/>

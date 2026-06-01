@@ -130,7 +130,7 @@ class MediaOrganizer
      */
     private function processProfile(string $name, array $profile): void
     {
-        $this->log('info', 'Processing profile: ' . $name);
+        $this->logger->log('info', 'Processing profile: ' . $name);
         $options = array_merge($this->defaults, $profile);
         if (!$this->validOptions($options)) {
             return;
@@ -144,15 +144,15 @@ class MediaOrganizer
         $count     = count($files);
         $succeeded = 0;
         $filesWord = 'file' . ($count === 1 ? '' : 's');
-        $this->log('debug', $count . ' ' . $filesWord . ' found.');
+        $this->logger->log('debug', $count . ' ' . $filesWord . ' found.');
         foreach ($files as $file) {
-            $this->log('info', 'Processing: ' . $file);
+            $this->logger->log('info', 'Processing: ' . $file);
             if ($this->processFile($file, $options)) {
                 $succeeded++;
             }
         }
 
-        $this->log('info', $succeeded . ' of ' . $count . ' ' . $filesWord . ' moved.');
+        $this->logger->log('info', $succeeded . ' of ' . $count . ' ' . $filesWord . ' moved.');
     }
 
 
@@ -167,14 +167,14 @@ class MediaOrganizer
     private function processFile($file, $options)
     {
         if (!File::isReadable($file)) {
-            $this->log('warning', $file . ' is unreadable or not a regular file.');
+            $this->logger->log('warning', $file . ' is unreadable or not a regular file.');
             return false;
         }
 
         $date = $this->getDate($file, $options);
-        $this->log('debug', $file . ' date ' . $date);
+        $this->logger->log('debug', $file . ' date ' . $date);
         if (!$date) {
-            $this->log('warning', 'Could not determine date of file: ' . $file);
+            $this->logger->log('warning', 'Could not determine date of file: ' . $file);
             return false;
         }
 
@@ -198,45 +198,29 @@ class MediaOrganizer
             }
 
             if (empty($dir) || !Directory::isWritable($dir)) {
-                $this->log('error', $label . ' directory does not exist or is unwritable: ' . $dir);
+                $this->logger->log('error', $label . ' directory does not exist or is unwritable: ' . $dir);
                 return false;
             }
         }
 
-        if ($options['scan_id3'] && !class_exists('\getID3')) {
-            $this->log('error', 'getID3 class not found. Install james-heinrich/getid3 to use scan_id3.');
+        if ($options['scan_id3'] && !GetId3DateExtractor::isAvailable()) {
+            $this->logger->log('error', 'getID3 class not found. Install james-heinrich/getid3 to use scan_id3.');
             $options['scan_id3'] = false;
         }
 
-        $maskValid = $this->validMask($options['target_mask']);
+        $mask      = $options['target_mask'];
+        $maskValid = !empty($mask)
+            && (stripos($mask, 'y') !== false || strpos($mask, 'm') !== false || strpos($mask, 'd') !== false);
         $scanValid = $options['scan_exif'] || $options['scan_id3']
             || $options['file_name_masks'] || $options['modified_time'];
 
         if (!$maskValid) {
-            $this->log('error', 'Invalid or empty target mask.');
+            $this->logger->log('error', 'Invalid or empty target mask.');
         } elseif (!$scanValid) {
-            $this->log('error', 'No scanning options enabled. Please check the profile options.');
+            $this->logger->log('error', 'No scanning options enabled. Please check the profile options.');
         }
 
         return $maskValid && $scanValid;
-    }
-
-
-    /**
-     * Checks if the given target mask is valid.
-     *
-     * @param string $mask The target mask to check.
-     *
-     * @return bool True if valid. False if not.
-     */
-    private function validMask($mask = '')
-    {
-        return
-            // Must not be empty.
-            !empty($mask)
-            // Must have at least one of: Y, y, m, or d.
-            && (stripos($mask, 'y') !== false || strpos($mask, 'm') !== false || strpos($mask, 'd') !== false)
-        ;
     }
 
 
@@ -255,26 +239,26 @@ class MediaOrganizer
         if ($options['scan_exif']) {
             $date = File::exifDateTime($file, 'Y-m-d');
             if ($date) {
-                $this->log('debug', 'Date retrieved from EXIF data.');
+                $this->logger->log('debug', 'Date retrieved from EXIF data.');
             }
         }
 
         if (!$date && $options['scan_id3']) {
-            $date = $this->getGetId3Date($file);
+            $date = (new GetId3DateExtractor())->getDate($file);
             if ($date) {
-                $this->log('debug', 'Date retrieved from getid3 metadata.');
+                $this->logger->log('debug', 'Date retrieved from getid3 metadata.');
             }
         }
 
         if (!$date && $options['file_name_masks']) {
             $date = $this->getFileNameDate($file, $options);
             if ($date) {
-                $this->log('debug', 'Date retrieved from file name.');
+                $this->logger->log('debug', 'Date retrieved from file name.');
             }
         }
 
         if (!$date && $options['modified_time']) {
-            $this->log('debug', 'Date retrieved from modified time.');
+            $this->logger->log('debug', 'Date retrieved from modified time.');
             $date = File::modifiedDateTime($file, 'Y-m-d');
         }
 
@@ -324,111 +308,6 @@ class MediaOrganizer
 
 
     /**
-     * Gets the file date using getid3 metadata analysis.
-     *
-     * Supports QuickTime/MP4/MOV container creation time, Matroska/MKV/WebM DateUTC,
-     * and tagged formats (ID3v2 recording_time, Vorbis date, RIFF creation date, etc.).
-     *
-     * @param string $file The absolute path to the file to check.
-     *
-     * @return string The date in YYYY-MM-DD format if found. Empty string if not.
-     */
-    private function getGetId3Date($file)
-    {
-        $getId3 = new \getID3();
-        $info   = $getId3->analyze($file);
-
-        return $this->getQuickTimeDate($info)
-            ?: $this->getMatroskaDate($info)
-            ?: $this->getTaggedCommentDate($info)
-            ?: $this->getYearTagDate($info);
-    }
-
-
-    /**
-     * Extracts a date from QuickTime/MP4/MOV movie-header creation time atom.
-     *
-     * @param array $info getID3 analysis result.
-     *
-     * @return string The date in YYYY-MM-DD format if found. Empty string if not.
-     */
-    private function getQuickTimeDate(array $info): string
-    {
-        if (empty($info['quicktime']['timestamps_unix']['create'])) {
-            return '';
-        }
-
-        $timestamps = $info['quicktime']['timestamps_unix']['create'];
-        // moov.mvhd is the movie-level atom; fall back to first available
-        $ts = $timestamps['moov.mvhd'] ?? reset($timestamps);
-        return $ts > 0 ? date('Y-m-d', $ts) : '';
-    }
-
-
-    /**
-     * Extracts a date from Matroska/MKV/WebM segment DateUTC.
-     *
-     * @param array $info getID3 analysis result.
-     *
-     * @return string The date in YYYY-MM-DD format if found. Empty string if not.
-     */
-    private function getMatroskaDate(array $info): string
-    {
-        if (empty($info['matroska']['info'])) {
-            return '';
-        }
-
-        foreach ($info['matroska']['info'] as $segment) {
-            if (!empty($segment['DateUTC_unix']) && $segment['DateUTC_unix'] > 0) {
-                return date('Y-m-d', $segment['DateUTC_unix']);
-            }
-        }
-
-        return '';
-    }
-
-
-    /**
-     * Extracts a date from tagged format comments (ID3v2, Vorbis, RIFF, APE, etc.).
-     *
-     * @param array $info getID3 analysis result.
-     *
-     * @return string The date in YYYY-MM-DD format if found. Empty string if not.
-     */
-    private function getTaggedCommentDate(array $info): string
-    {
-        foreach (['recording_time', 'date', 'creationdate', 'digitizationdate'] as $tagKey) {
-            if (!empty($info['comments'][$tagKey][0])) {
-                $ts = strtotime($info['comments'][$tagKey][0]);
-                if ($ts !== false && $ts > 0) {
-                    return date('Y-m-d', $ts);
-                }
-            }
-        }
-
-        return '';
-    }
-
-
-    /**
-     * Extracts a date from a year-only tag (e.g. ID3v1 TYER), defaulting to Jan 1.
-     *
-     * @param array $info getID3 analysis result.
-     *
-     * @return string The date in YYYY-01-01 format if found. Empty string if not.
-     */
-    private function getYearTagDate(array $info): string
-    {
-        if (empty($info['comments']['year'][0])) {
-            return '';
-        }
-
-        $year = trim($info['comments']['year'][0]);
-        return preg_match('/^\d{4}$/', $year) ? $year . '-01-01' : '';
-    }
-
-
-    /**
      * Moves the file based on the given options.
      *
      * @param string $file    The absolute path of the source file.
@@ -446,23 +325,11 @@ class MediaOrganizer
         $target = $directory . $filename . '.' . $extension;
         $result = File::move($file, $target, !$options['overwrite']);
         if ($result) {
-            $this->log('info', $file . ' moved to ' . $result);
+            $this->logger->log('info', $file . ' moved to ' . $result);
         } else {
-            $this->log('warning', 'Could not move ' . $file . ' to ' . $target);
+            $this->logger->log('warning', 'Could not move ' . $file . ' to ' . $target);
         }
 
         return $result;
-    }
-
-
-    /**
-     * Logs a message.
-     *
-     * @param string $level The log level of the message.
-     * @param string $text  The message to log.
-     */
-    private function log(string $level, string $text): void
-    {
-        $this->logger->log($level, $text);
     }
 }
