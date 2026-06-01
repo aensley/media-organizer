@@ -19,28 +19,33 @@ class MediaOrganizer
      * @var array
      */
     private $defaults = [
-        // Directory to search for files. Must be set. Ending slash required.
+        // REQUIRED: Directory to search for files. Ending slash required.
         'source_directory' => '',
         // Set to true to look in all subdirectories of source_directory for files.
         'search_recursive' => false,
-        // Array of file extensions to search for. Leave empty to include all files.
+        // Array of file extensions to search for. Set to an empty array to include all files.
         'valid_extensions' => ['jpg', 'jpeg'],
-        // Parent directory to place moved files in. Must be set. Ending slash required.
+        // REQUIRED: Destination directory for organized files. Ending slash required.
         'target_directory' => '',
-        // Directory structure to use for target. Must be set.
+        // REQUIRED: Directory structure to use for target.
         // Y = 4-digit year, y = 2-digit year, m = 2-digit month, d = 2-digit day
-        // Anything from http://php.net/date will work, except time-based options as they will not be consistent.
+        // Anything supported by http://php.net/date will work, except time-based options which will not be consistent.
         'target_mask' => 'Y/Y-m-d',
+        // Whether to overwrite destination files.
         // true = overwrite same files that already exist in target.
-        // false = add incrementing counter to same file names until there's no collision.
+        // false = add incrementing counter to identical file names to avoid collisions.
         'overwrite' => false,
-        // Scan exif data for date? Only valid for JPEG or TIFF image files.
+        // DATE RETRIEVAL METHOD: Scan EXIF data for file date.
+        // Supports image files (JPG, TIFF, HEIC, WEBP, etc.).
         'scan_exif' => true,
-        // Pattern to search for in file names for date. Set to false to disable filename logic.
-        // Only runs if scan_exif is disabled or fails.
+        // DATE RETRIEVAL METHOD: Scan metadata via getid3 for file date.
+        // Supports video files (MP4, MOV, MKV, AVI, etc.) and
+        // audio files (MP3, FLAC, OGG, etc.).
+        'scan_id3' => false,
+        // DATE RETRIEVAL METHOD: Patterns to search for in file names for date. Set to false to disable filename logic.
         // Y = year digit, M = month digit, D = day digit. All are replaced with digits for regex search.
-        'file_name_masks' => ['YYYYMMDD', 'YYYY-MM-DD'],
-        // Whether or not to use the file's modified time if both scan_exif and file_name_masks are disabled or fail.
+        'file_name_masks' => ['YYYY-MM-DD', 'YYYYMMDD'],
+        // DATE RETRIEVAL METHOD: Whether or not to use the file's modified time.
         'modified_time' => false,
     ];
 
@@ -112,28 +117,42 @@ class MediaOrganizer
         }
 
         foreach ($profiles as $name => $profile) {
-            $this->log('info', 'Processing profile: ' . $name);
-            $options = array_merge($this->defaults, $profile);
-            if ($this->validOptions($options)) {
-                $files = Directory::listFiles(
-                    $options['source_directory'],
-                    $options['search_recursive'],
-                    $options['valid_extensions']
-                );
-                $count = count($files);
-                $succeeded = 0;
-                $filesWord = 'file' . ($count === 1 ? '' : 's');
-                $this->log('debug', $count . ' ' . $filesWord . ' found.');
-                foreach ($files as $file) {
-                    $this->log('info', 'Processing: ' . $file);
-                    if ($this->processFile($file, $options)) {
-                        $succeeded++;
-                    }
-                }
+            $this->processProfile($name, $profile);
+        }
+    }
 
-                $this->log('info', $succeeded . ' of ' . $count . ' ' . $filesWord . ' moved.');
+
+    /**
+     * Processes a single profile: validates options, lists files, and moves each one.
+     *
+     * @param string $name    The profile name, used for logging.
+     * @param array  $profile The raw profile options (merged with defaults internally).
+     */
+    private function processProfile(string $name, array $profile): void
+    {
+        $this->logger->log('info', 'Processing profile: ' . $name);
+        $options = array_merge($this->defaults, $profile);
+        if (!$this->validOptions($options)) {
+            return;
+        }
+
+        $files     = Directory::listFiles(
+            $options['source_directory'],
+            $options['search_recursive'],
+            $options['valid_extensions']
+        );
+        $count     = count($files);
+        $succeeded = 0;
+        $filesWord = 'file' . ($count === 1 ? '' : 's');
+        $this->logger->log('debug', $count . ' ' . $filesWord . ' found.');
+        foreach ($files as $file) {
+            $this->logger->log('info', 'Processing: ' . $file);
+            if ($this->processFile($file, $options)) {
+                $succeeded++;
             }
         }
+
+        $this->logger->log('info', $succeeded . ' of ' . $count . ' ' . $filesWord . ' moved.');
     }
 
 
@@ -148,14 +167,14 @@ class MediaOrganizer
     private function processFile($file, $options)
     {
         if (!File::isReadable($file)) {
-            $this->log('warning', $file . ' is unreadable or not a regular file.');
+            $this->logger->log('warning', $file . ' is unreadable or not a regular file.');
             return false;
         }
 
         $date = $this->getDate($file, $options);
-        $this->log('debug', $file . ' date ' . $date);
+        $this->logger->log('debug', $file . ' date ' . $date);
         if (!$date) {
-            $this->log('warning', 'Could not determine date of file: ' . $file);
+            $this->logger->log('warning', 'Could not determine date of file: ' . $file);
             return false;
         }
 
@@ -170,7 +189,7 @@ class MediaOrganizer
      *
      * @return bool
      */
-    private function validOptions($options)
+    private function validOptions(array &$options)
     {
         foreach (['source_directory' => 'Source', 'target_directory' => 'Target'] as $key => $label) {
             $dir = $options[$key];
@@ -179,39 +198,29 @@ class MediaOrganizer
             }
 
             if (empty($dir) || !Directory::isWritable($dir)) {
-                $this->log('error', $label . ' directory does not exist or is unwritable: ' . $dir);
+                $this->logger->log('error', $label . ' directory does not exist or is unwritable: ' . $dir);
                 return false;
             }
         }
 
-        $maskValid = $this->validMask($options['target_mask']);
-        $scanValid = $options['scan_exif'] || $options['file_name_masks'] || $options['modified_time'];
+        if ($options['scan_id3'] && !GetId3DateExtractor::isAvailable()) {
+            $this->logger->log('error', 'getID3 class not found. Install james-heinrich/getid3 to use scan_id3.');
+            $options['scan_id3'] = false;
+        }
+
+        $mask      = $options['target_mask'];
+        $maskValid = !empty($mask)
+            && (stripos($mask, 'y') !== false || strpos($mask, 'm') !== false || strpos($mask, 'd') !== false);
+        $scanValid = $options['scan_exif'] || $options['scan_id3']
+            || $options['file_name_masks'] || $options['modified_time'];
 
         if (!$maskValid) {
-            $this->log('error', 'Invalid or empty target mask.');
+            $this->logger->log('error', 'Invalid or empty target mask.');
         } elseif (!$scanValid) {
-            $this->log('error', 'No scanning options enabled. Please check the profile options.');
+            $this->logger->log('error', 'No scanning options enabled. Please check the profile options.');
         }
 
         return $maskValid && $scanValid;
-    }
-
-
-    /**
-     * Checks if the given target mask is valid.
-     *
-     * @param string $mask The target mask to check.
-     *
-     * @return bool True if valid. False if not.
-     */
-    private function validMask($mask = '')
-    {
-        return
-            // Must not be empty.
-            !empty($mask)
-            // Must have at least one of: Y, y, m, or d.
-            && (stripos($mask, 'y') !== false || strpos($mask, 'm') !== false || strpos($mask, 'd') !== false)
-        ;
     }
 
 
@@ -230,19 +239,26 @@ class MediaOrganizer
         if ($options['scan_exif']) {
             $date = File::exifDateTime($file, 'Y-m-d');
             if ($date) {
-                $this->log('debug', 'Date retrieved from EXIF data.');
+                $this->logger->log('debug', 'Date retrieved from EXIF data.');
+            }
+        }
+
+        if (!$date && $options['scan_id3']) {
+            $date = (new GetId3DateExtractor())->getDate($file);
+            if ($date) {
+                $this->logger->log('debug', 'Date retrieved from getid3 metadata.');
             }
         }
 
         if (!$date && $options['file_name_masks']) {
             $date = $this->getFileNameDate($file, $options);
             if ($date) {
-                $this->log('debug', 'Date retrieved from file name.');
+                $this->logger->log('debug', 'Date retrieved from file name.');
             }
         }
 
         if (!$date && $options['modified_time']) {
-            $this->log('debug', 'Date retrieved from modified time.');
+            $this->logger->log('debug', 'Date retrieved from modified time.');
             $date = File::modifiedDateTime($file, 'Y-m-d');
         }
 
@@ -309,23 +325,11 @@ class MediaOrganizer
         $target = $directory . $filename . '.' . $extension;
         $result = File::move($file, $target, !$options['overwrite']);
         if ($result) {
-            $this->log('info', $file . ' moved to ' . $result);
+            $this->logger->log('info', $file . ' moved to ' . $result);
         } else {
-            $this->log('warning', 'Could not move ' . $file . ' to ' . $target);
+            $this->logger->log('warning', 'Could not move ' . $file . ' to ' . $target);
         }
 
         return $result;
-    }
-
-
-    /**
-     * Logs a message.
-     *
-     * @param string $level The log level of the message.
-     * @param string $text  The message to log.
-     */
-    private function log(string $level, string $text): void
-    {
-        $this->logger->log($level, $text);
     }
 }

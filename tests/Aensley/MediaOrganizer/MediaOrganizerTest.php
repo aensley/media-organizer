@@ -9,10 +9,14 @@ use Monolog\Handler\StreamHandler;
 class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
 {
     private const CLASS_NAME = '\Aensley\MediaOrganizer\MediaOrganizer';
+    private const DATE_JULY_5_2016 = '2016-07-05';
+    private const DEST_FILE_NAME = '2016/' . self::DATE_JULY_5_2016 . '/test_exif_july_5_2016.jpg';
+    private const GETID3_STUB_PATH = __DIR__ . '/stubs/GetId3Stub.php';
 
     private $sourceDirectory;
     private $targetDirectory;
     private $mediaOrganizer;
+    private $extractor;
     private $profiles = [
         'images_exif' => [
             'file_name_masks' => false,
@@ -77,7 +81,7 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
         ];
 
         $this->targetFiles = [
-            $this->targetDirectory . '2016/2016-07-05/test_exif_july_5_2016.jpg',
+            $this->targetDirectory . self::DEST_FILE_NAME,
             $this->targetDirectory . date('Y') . '/' . date('Y-m-d') . '/modified_test.jpg',
             $this->targetDirectory . date('Y') . '/' . date('Y-m-d') . '/search_recursive.jpg',
             $this->targetDirectory . date('Y') . '/' . date('Y-m-d')
@@ -91,6 +95,7 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
         ];
 
         $this->mediaOrganizer = new MediaOrganizer($this->profiles, $this->createLogger());
+        $this->extractor      = new GetId3DateExtractor();
     }
 
     public function testInstantiation()
@@ -105,6 +110,24 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
         $this->mediaOrganizer->organize(
             ['test_empty_target' => ['source_directory' => $this->sourceDirectory]]
         );
+    }
+
+    public function testAutoCreatesNonExistentDirectories(): void
+    {
+        $tempSource = sys_get_temp_dir() . '/mo_source_' . uniqid();
+        $tempTarget = sys_get_temp_dir() . '/mo_target_' . uniqid();
+        $this->mediaOrganizer->organize([
+            'auto_create' => [
+                'source_directory' => $tempSource,
+                'target_directory' => $tempTarget,
+                'scan_exif'        => false,
+                'file_name_masks'  => false,
+                'modified_time'    => false,
+            ],
+        ]);
+        $this->assertDirectoryExists($tempSource);
+        rmdir($tempSource);
+        rmdir($tempTarget);
     }
 
     public function testEmptyInstantiation()
@@ -344,13 +367,14 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
         $profile = $this->profiles['images_exif'];
         $profile['overwrite'] = true;
         $this->mediaOrganizer->organize(['images_exif' => $profile]);
-        $exifTarget = $this->targetDirectory . '2016/2016-07-05/test_exif_july_5_2016.jpg';
+        $exifTarget = $this->targetDirectory . self::DEST_FILE_NAME;
         $this->assertFileExists($exifTarget);
 
         $this->resetTestFiles(true);
         $this->mediaOrganizer->organize(['images_exif' => $profile]);
         $this->assertFileExists($exifTarget);
-        $this->assertFileDoesNotExist($this->targetDirectory . '2016/2016-07-05/test_exif_july_5_2016_0.jpg');
+        $this->assertFileDoesNotExist($this->targetDirectory . '2016/'
+            . self::DATE_JULY_5_2016 . '/test_exif_july_5_2016_0.jpg');
     }
 
     public function testAllExtensions()
@@ -377,6 +401,215 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
         $this->mediaOrganizer->organize(['images_exif' => $this->profiles['images_exif']]);
         $this->assertTrue(is_link($linkPath));
         unlink($linkPath);
+    }
+
+    public function testScanId3MissingClass(): void
+    {
+        $profile = [
+            'source_directory' => $this->sourceDirectory,
+            'target_directory' => $this->targetDirectory,
+            'scan_id3'         => true,
+            'scan_exif'        => false,
+            'file_name_masks'  => false,
+            'modified_time'    => false,
+        ];
+        $organizer = new MediaOrganizer();
+        $this->expectOutputRegex('/getID3/');
+        $organizer->organize(['scan_id3_missing' => $profile]);
+    }
+
+    #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+    #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
+    public function testScanId3DateFound(): void
+    {
+        require_once self::GETID3_STUB_PATH;
+        $this->resetTestFiles();
+        $this->mediaOrganizer->organize([
+            'scan_id3_found' => [
+                'source_directory' => $this->sourceDirectory,
+                'target_directory' => $this->targetDirectory,
+                'valid_extensions' => ['jpg'],
+                'scan_id3'         => true,
+                'scan_exif'        => false,
+                'file_name_masks'  => false,
+                'modified_time'    => false,
+            ],
+        ]);
+        $this->assertFileExists(
+            $this->targetDirectory . self::DEST_FILE_NAME
+        );
+    }
+
+    public function testFileMaskUnknownFallback(): void
+    {
+        $this->assertSame(self::DATE_JULY_5_2016, $this->invokePrivate('fileMask', 'photo_20160705', 'UNKNOWN_MASK'));
+    }
+
+    public function testUnreadableFileSkipped(): void
+    {
+        if (posix_geteuid() === 0) {
+            $this->markTestSkipped('Cannot test unreadable files as root.');
+        }
+
+        $this->resetTestFiles();
+        $file = $this->sourceDirectory . 'test_exif_july_5_2016.jpg';
+        chmod($file, 0000);
+        $this->mediaOrganizer->organize(['images_exif' => $this->profiles['images_exif']]);
+        $this->assertFileExists($file);
+        $this->assertFileDoesNotExist($this->targetDirectory . self::DEST_FILE_NAME);
+        chmod($file, 0644);
+    }
+
+    public function testSetLogger(): void
+    {
+        $this->expectNotToPerformAssertions();
+        $this->mediaOrganizer->setLogger($this->createLogger());
+    }
+
+    #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+    #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
+    public function testGetDate(): void
+    {
+        require_once self::GETID3_STUB_PATH;
+        $extractor = new GetId3DateExtractor();
+        $this->assertSame(self::DATE_JULY_5_2016, $extractor->getDate('/tmp/test.mp4'));
+    }
+
+    #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+    #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
+    public function testGetDateFallsBackToMatroska(): void
+    {
+        require_once self::GETID3_STUB_PATH;
+        \getID3::$result = ['matroska' => ['info' => [['DateUTC_unix' => mktime(0, 0, 0, 7, 5, 2016)]]]];
+        $extractor = new GetId3DateExtractor();
+        $this->assertSame(self::DATE_JULY_5_2016, $extractor->getDate('/tmp/test.mkv'));
+    }
+
+    #[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+    #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
+    public function testGetDateFallsBackToTaggedComment(): void
+    {
+        require_once self::GETID3_STUB_PATH;
+        \getID3::$result = ['comments' => ['recording_time' => [self::DATE_JULY_5_2016]]];
+        $extractor = new GetId3DateExtractor();
+        $this->assertSame(self::DATE_JULY_5_2016, $extractor->getDate('/tmp/test.ogg'));
+    }
+
+    public function testGetQuickTimeDateEmpty(): void
+    {
+        $this->assertSame('', $this->invokeExtractor('getQuickTimeDate', []));
+    }
+
+    public function testGetQuickTimeDateMoovMvhd(): void
+    {
+        $ts   = mktime(0, 0, 0, 7, 5, 2016);
+        $info = ['quicktime' => ['timestamps_unix' => ['create' => ['moov.mvhd' => $ts]]]];
+        $this->assertSame(self::DATE_JULY_5_2016, $this->invokeExtractor('getQuickTimeDate', $info));
+    }
+
+    public function testGetQuickTimeDateFallbackKey(): void
+    {
+        $ts   = mktime(0, 0, 0, 7, 5, 2016);
+        $info = ['quicktime' => ['timestamps_unix' => ['create' => ['trak.tkhd' => $ts]]]];
+        $this->assertSame(self::DATE_JULY_5_2016, $this->invokeExtractor('getQuickTimeDate', $info));
+    }
+
+    public function testGetQuickTimeDateZeroTimestamp(): void
+    {
+        $info = ['quicktime' => ['timestamps_unix' => ['create' => ['moov.mvhd' => 0]]]];
+        $this->assertSame('', $this->invokeExtractor('getQuickTimeDate', $info));
+    }
+
+    public function testGetMatroskaDateEmpty(): void
+    {
+        $this->assertSame('', $this->invokeExtractor('getMatroskaDate', []));
+    }
+
+    public function testGetMatroskaDateValid(): void
+    {
+        $ts   = mktime(0, 0, 0, 7, 5, 2016);
+        $info = ['matroska' => ['info' => [['DateUTC_unix' => $ts]]]];
+        $this->assertSame(self::DATE_JULY_5_2016, $this->invokeExtractor('getMatroskaDate', $info));
+    }
+
+    public function testGetMatroskaDateSkipsZeroSegment(): void
+    {
+        $ts   = mktime(0, 0, 0, 7, 5, 2016);
+        $info = ['matroska' => ['info' => [['DateUTC_unix' => 0], ['DateUTC_unix' => $ts]]]];
+        $this->assertSame(self::DATE_JULY_5_2016, $this->invokeExtractor('getMatroskaDate', $info));
+    }
+
+    public function testGetMatroskaDateNoValid(): void
+    {
+        $info = ['matroska' => ['info' => [['other_key' => 123]]]];
+        $this->assertSame('', $this->invokeExtractor('getMatroskaDate', $info));
+    }
+
+    public function testGetTaggedCommentDateEmpty(): void
+    {
+        $this->assertSame('', $this->invokeExtractor('getTaggedCommentDate', []));
+    }
+
+    /**
+     * @return array<string, array<int, mixed>>
+     */
+    public static function taggedCommentProvider(): array
+    {
+        return [
+            'recording_time'    => ['recording_time',    self::DATE_JULY_5_2016],
+            'date'              => ['date',              self::DATE_JULY_5_2016],
+            'creationdate'      => ['creationdate',      self::DATE_JULY_5_2016],
+            'digitizationdate'  => ['digitizationdate',  self::DATE_JULY_5_2016],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('taggedCommentProvider')]
+    public function testGetTaggedCommentDateKeys(string $tagKey, string $expected): void
+    {
+        $info = ['comments' => [$tagKey => [self::DATE_JULY_5_2016]]];
+        $this->assertSame($expected, $this->invokeExtractor('getTaggedCommentDate', $info));
+    }
+
+    public function testGetTaggedCommentDateUnparseable(): void
+    {
+        $info = ['comments' => ['recording_time' => ['not-a-date']]];
+        $this->assertSame('', $this->invokeExtractor('getTaggedCommentDate', $info));
+    }
+
+    public function testGetTaggedCommentDateFallsThrough(): void
+    {
+        $ts   = mktime(0, 0, 0, 7, 5, 2016);
+        $info = ['comments' => ['recording_time' => ['not-a-date'], 'date' => [date('Y-m-d', $ts)]]];
+        $this->assertSame(self::DATE_JULY_5_2016, $this->invokeExtractor('getTaggedCommentDate', $info));
+    }
+
+    public function testGetYearTagDateEmpty(): void
+    {
+        $this->assertSame('', $this->invokeExtractor('getYearTagDate', []));
+    }
+
+    public function testGetYearTagDateValid(): void
+    {
+        $info = ['comments' => ['year' => ['2016']]];
+        $this->assertSame('2016-01-01', $this->invokeExtractor('getYearTagDate', $info));
+    }
+
+    public function testGetYearTagDateNonFourDigit(): void
+    {
+        $this->assertSame('', $this->invokeExtractor('getYearTagDate', ['comments' => ['year' => ['16']]]));
+        $this->assertSame('', $this->invokeExtractor('getYearTagDate', ['comments' => ['year' => ['abc']]]));
+    }
+
+    private function invokePrivate(string $method, mixed ...$args): mixed
+    {
+        $ref = new \ReflectionMethod($this->mediaOrganizer, $method);
+        return $ref->invoke($this->mediaOrganizer, ...$args);
+    }
+
+    private function invokeExtractor(string $method, mixed ...$args): mixed
+    {
+        $ref = new \ReflectionMethod($this->extractor, $method);
+        return $ref->invoke($this->extractor, ...$args);
     }
 
     private function createLogger(): Logger
