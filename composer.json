@@ -61,7 +61,8 @@
   },
   "require": {
     "php": ">=7.1",
-    "aensley/file": "v2.0.2"
+    "aensley/file": "v2.0.2",
+    "wikimedia/xmp-reader": "^0.10.3"
   },
   "require-dev": {
     "monolog/monolog": "^3.10",

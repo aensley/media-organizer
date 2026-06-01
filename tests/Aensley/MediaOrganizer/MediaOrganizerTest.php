@@ -3,6 +3,7 @@
 namespace Aensley\MediaOrganizer;
 
 use Aensley\MediaOrganizer\MediaOrganizer;
+use Aensley\MediaOrganizer\XmpDateExtractor;
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 
@@ -12,11 +13,13 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
     private const DATE_JULY_5_2016 = '2016-07-05';
     private const DEST_FILE_NAME = '2016/' . self::DATE_JULY_5_2016 . '/test_exif_july_5_2016.jpg';
     private const GETID3_STUB_PATH = __DIR__ . '/stubs/GetId3Stub.php';
+    private const XMP_DATE_JULY_5_2016 = '2016:07:05 09:54:55';
 
     private $sourceDirectory;
     private $targetDirectory;
     private $mediaOrganizer;
     private $extractor;
+    private $xmpExtractor;
     private $profiles = [
         'images_exif' => [
             'file_name_masks' => false,
@@ -96,6 +99,7 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
 
         $this->mediaOrganizer = new MediaOrganizer($this->profiles, $this->createLogger());
         $this->extractor      = new GetId3DateExtractor();
+        $this->xmpExtractor   = new XmpDateExtractor();
     }
 
     public function testInstantiation()
@@ -600,6 +604,103 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
         $this->assertSame('', $this->invokeExtractor('getYearTagDate', ['comments' => ['year' => ['abc']]]));
     }
 
+    public function testScanXmpDateFound(): void
+    {
+        $this->resetTestFiles();
+        $this->mediaOrganizer->organize([
+            'scan_xmp_found' => [
+                'source_directory' => $this->sourceDirectory,
+                'target_directory' => $this->targetDirectory,
+                'valid_extensions' => ['jpg'],
+                'scan_xmp'         => true,
+                'scan_exif'        => false,
+                'file_name_masks'  => false,
+                'modified_time'    => false,
+            ],
+        ]);
+        $this->assertFileExists($this->targetDirectory . self::DEST_FILE_NAME);
+    }
+
+    public function testScanXmpNoXmpData(): void
+    {
+        // A touch'd empty file has no XMP packet; extractor should return empty string.
+        $this->assertSame('', $this->xmpExtractor->getDate($this->sourceDirectory . 'modified_test.jpg'));
+    }
+
+    public function testScanXmpRealFile(): void
+    {
+        // The test asset has xmp:CreateDate = 2016-07-05T09:54:55.920
+        $file = realpath(dirname(__FILE__) . '/../../../assets/') . '/test_exif_july_5_2016.jpg';
+        $this->assertSame(self::DATE_JULY_5_2016, $this->xmpExtractor->getDate($file));
+    }
+
+    public function testScanXmpScanValidOption(): void
+    {
+        // scan_xmp alone should satisfy the "at least one scan method" requirement.
+        $this->resetTestFiles();
+        $file = realpath(dirname(__FILE__) . '/../../../assets/') . '/test_exif_july_5_2016.jpg';
+        copy($file, $this->sourceDirectory . 'test_exif_july_5_2016.jpg');
+        $this->mediaOrganizer->organize([
+            'xmp_only' => [
+                'source_directory' => $this->sourceDirectory,
+                'target_directory' => $this->targetDirectory,
+                'valid_extensions' => ['jpg'],
+                'scan_xmp'         => true,
+                'scan_exif'        => false,
+                'scan_id3'         => false,
+                'file_name_masks'  => false,
+                'modified_time'    => false,
+            ],
+        ]);
+        $this->assertFileExists($this->targetDirectory . self::DEST_FILE_NAME);
+    }
+
+    public function testGetDateFromResultsEmpty(): void
+    {
+        $this->assertSame('', $this->invokeXmpExtractor('getDateFromResults', []));
+    }
+
+    public function testGetDateFromResultsExifOriginal(): void
+    {
+        $results = ['xmp-exif' => ['DateTimeOriginal' => self::XMP_DATE_JULY_5_2016]];
+        $this->assertSame(self::DATE_JULY_5_2016, $this->invokeXmpExtractor('getDateFromResults', $results));
+    }
+
+    public function testGetDateFromResultsDeprecatedOriginal(): void
+    {
+        $results = ['xmp-deprecated' => ['DateTimeOriginal' => self::XMP_DATE_JULY_5_2016]];
+        $this->assertSame(self::DATE_JULY_5_2016, $this->invokeXmpExtractor('getDateFromResults', $results));
+    }
+
+    public function testGetDateFromResultsExifDigitized(): void
+    {
+        $results = ['xmp-exif' => ['DateTimeDigitized' => self::XMP_DATE_JULY_5_2016]];
+        $this->assertSame(self::DATE_JULY_5_2016, $this->invokeXmpExtractor('getDateFromResults', $results));
+    }
+
+    public function testGetDateFromResultsGeneralDigitized(): void
+    {
+        // xmp:CreateDate maps to xmp-general.DateTimeDigitized
+        $results = ['xmp-general' => ['DateTimeDigitized' => self::XMP_DATE_JULY_5_2016]];
+        $this->assertSame(self::DATE_JULY_5_2016, $this->invokeXmpExtractor('getDateFromResults', $results));
+    }
+
+    public function testGetDateFromResultsPriority(): void
+    {
+        // xmp-exif.DateTimeOriginal should win over xmp-general.DateTimeDigitized
+        $results = [
+            'xmp-exif'    => ['DateTimeOriginal' => self::XMP_DATE_JULY_5_2016],
+            'xmp-general' => ['DateTimeDigitized' => '2020:01:01 00:00:00'],
+        ];
+        $this->assertSame(self::DATE_JULY_5_2016, $this->invokeXmpExtractor('getDateFromResults', $results));
+    }
+
+    public function testGetDateFromResultsUnparseable(): void
+    {
+        $results = ['xmp-exif' => ['DateTimeOriginal' => 'not-a-date']];
+        $this->assertSame('', $this->invokeXmpExtractor('getDateFromResults', $results));
+    }
+
     private function invokePrivate(string $method, mixed ...$args): mixed
     {
         $ref = new \ReflectionMethod($this->mediaOrganizer, $method);
@@ -610,6 +711,12 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
     {
         $ref = new \ReflectionMethod($this->extractor, $method);
         return $ref->invoke($this->extractor, ...$args);
+    }
+
+    private function invokeXmpExtractor(string $method, mixed ...$args): mixed
+    {
+        $ref = new \ReflectionMethod($this->xmpExtractor, $method);
+        return $ref->invoke($this->xmpExtractor, ...$args);
     }
 
     private function createLogger(): Logger
