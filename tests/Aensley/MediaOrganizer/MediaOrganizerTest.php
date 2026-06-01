@@ -10,6 +10,8 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
 {
     private const CLASS_NAME = '\Aensley\MediaOrganizer\MediaOrganizer';
     private const DATE_JULY_5_2016 = '2016-07-05';
+    private const DEST_FILE_NAME = '2016/' . self::DATE_JULY_5_2016 . '/test_exif_july_5_2016.jpg';
+    private const GETID3_STUB_PATH = __DIR__ . '/stubs/GetId3Stub.php';
 
     private $sourceDirectory;
     private $targetDirectory;
@@ -79,7 +81,7 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
         ];
 
         $this->targetFiles = [
-            $this->targetDirectory . '2016/' . self::DATE_JULY_5_2016 . '/test_exif_july_5_2016.jpg',
+            $this->targetDirectory . self::DEST_FILE_NAME,
             $this->targetDirectory . date('Y') . '/' . date('Y-m-d') . '/modified_test.jpg',
             $this->targetDirectory . date('Y') . '/' . date('Y-m-d') . '/search_recursive.jpg',
             $this->targetDirectory . date('Y') . '/' . date('Y-m-d')
@@ -365,7 +367,7 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
         $profile = $this->profiles['images_exif'];
         $profile['overwrite'] = true;
         $this->mediaOrganizer->organize(['images_exif' => $profile]);
-        $exifTarget = $this->targetDirectory . '2016/' . self::DATE_JULY_5_2016 . '/test_exif_july_5_2016.jpg';
+        $exifTarget = $this->targetDirectory . self::DEST_FILE_NAME;
         $this->assertFileExists($exifTarget);
 
         $this->resetTestFiles(true);
@@ -420,7 +422,7 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
     #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
     public function testScanId3DateFound(): void
     {
-        require_once __DIR__ . '/stubs/GetId3Stub.php';
+        require_once self::GETID3_STUB_PATH;
         $this->resetTestFiles();
         $this->mediaOrganizer->organize([
             'scan_id3_found' => [
@@ -434,7 +436,7 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
             ],
         ]);
         $this->assertFileExists(
-            $this->targetDirectory . '2016/' . self::DATE_JULY_5_2016 . '/test_exif_july_5_2016.jpg'
+            $this->targetDirectory . self::DEST_FILE_NAME
         );
     }
 
@@ -454,8 +456,7 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
         chmod($file, 0000);
         $this->mediaOrganizer->organize(['images_exif' => $this->profiles['images_exif']]);
         $this->assertFileExists($file);
-        $this->assertFileDoesNotExist($this->targetDirectory . '2016/'
-            . self::DATE_JULY_5_2016 . '/test_exif_july_5_2016.jpg');
+        $this->assertFileDoesNotExist($this->targetDirectory . self::DEST_FILE_NAME);
         chmod($file, 0644);
     }
 
@@ -469,7 +470,7 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
     #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
     public function testGetDate(): void
     {
-        require_once __DIR__ . '/stubs/GetId3Stub.php';
+        require_once self::GETID3_STUB_PATH;
         $extractor = new GetId3DateExtractor();
         $this->assertSame(self::DATE_JULY_5_2016, $extractor->getDate('/tmp/test.mp4'));
     }
@@ -478,7 +479,7 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
     #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
     public function testGetDateFallsBackToMatroska(): void
     {
-        require_once __DIR__ . '/stubs/GetId3Stub.php';
+        require_once self::GETID3_STUB_PATH;
         \getID3::$result = ['matroska' => ['info' => [['DateUTC_unix' => mktime(0, 0, 0, 7, 5, 2016)]]]];
         $extractor = new GetId3DateExtractor();
         $this->assertSame(self::DATE_JULY_5_2016, $extractor->getDate('/tmp/test.mkv'));
@@ -488,7 +489,7 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
     #[\PHPUnit\Framework\Attributes\PreserveGlobalState(false)]
     public function testGetDateFallsBackToTaggedComment(): void
     {
-        require_once __DIR__ . '/stubs/GetId3Stub.php';
+        require_once self::GETID3_STUB_PATH;
         \getID3::$result = ['comments' => ['recording_time' => [self::DATE_JULY_5_2016]]];
         $extractor = new GetId3DateExtractor();
         $this->assertSame(self::DATE_JULY_5_2016, $extractor->getDate('/tmp/test.ogg'));
