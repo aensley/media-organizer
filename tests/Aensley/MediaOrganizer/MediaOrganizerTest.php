@@ -342,6 +342,32 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
         }
     }
 
+    public function testMoveFileFails(): void
+    {
+        if (posix_geteuid() === 0) {
+            $this->markTestSkipped('Cannot test unwritable directory as root.');
+        }
+
+        $this->resetTestFiles();
+        $this->mediaOrganizer->organize(['images_exif' => $this->profiles['images_exif']]);
+        $targetSubDir = $this->targetDirectory . '2016/' . self::DATE_JULY_5_2016 . '/';
+        $this->assertDirectoryExists($targetSubDir);
+
+        $testExifFile = realpath(dirname(__FILE__) . '/../../../assets/') . '/test_exif_july_5_2016.jpg';
+        copy($testExifFile, $this->sourceDirectory . 'test_exif_july_5_2016.jpg');
+        chmod($targetSubDir, 0555);
+
+        // Suppress the expected "mkdir(): File exists" E_WARNING from Directory::create() in vendor code.
+        set_error_handler(static fn () => true, E_WARNING);
+        try {
+            $this->mediaOrganizer->organize(['images_exif' => $this->profiles['images_exif']]);
+            $this->assertFileExists($this->sourceDirectory . 'test_exif_july_5_2016.jpg');
+        } finally {
+            restore_error_handler();
+            chmod($targetSubDir, 0755);
+        }
+    }
+
     public function testInvalidTargetMask()
     {
         $this->resetTestFiles();
@@ -625,6 +651,15 @@ class MediaOrganizerTest extends \PHPUnit\Framework\TestCase
     {
         // A touch'd empty file has no XMP packet; extractor should return empty string.
         $this->assertSame('', $this->xmpExtractor->getDate($this->sourceDirectory . 'modified_test.jpg'));
+    }
+
+    public function testScanXmpParseFailure(): void
+    {
+        // XMP packet markers are present but the XML content is malformed, so Reader::parse() returns false.
+        $temp = tempnam(sys_get_temp_dir(), 'xmp_bad_');
+        file_put_contents($temp, '<?xpacket begin="" uid="test"?><not valid xml &<?xpacket end="r"?>');
+        $this->assertSame('', $this->xmpExtractor->getDate($temp));
+        unlink($temp);
     }
 
     public function testScanXmpRealFile(): void

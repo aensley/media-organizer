@@ -212,11 +212,11 @@ class MediaOrganizer
             $options['scan_id3'] = false;
         }
 
-        $mask      = $options['target_mask'];
+        $mask = $options['target_mask'];
         $maskValid = !empty($mask)
             && (stripos($mask, 'y') !== false || strpos($mask, 'm') !== false || strpos($mask, 'd') !== false);
-        $scanValid = $options['scan_exif'] || $options['scan_id3'] || $options['scan_xmp']
-            || $options['file_name_masks'] || $options['modified_time'];
+        $scanOptions = ['scan_exif', 'scan_xmp', 'scan_id3', 'file_name_masks', 'modified_time'];
+        $scanValid = (bool) array_filter($scanOptions, fn ($key) => $options[$key]);
 
         if (!$maskValid) {
             $this->logger->log('error', 'Invalid or empty target mask.');

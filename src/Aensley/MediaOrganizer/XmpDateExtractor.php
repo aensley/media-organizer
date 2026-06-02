@@ -45,34 +45,21 @@ class XmpDateExtractor
      */
     private function extractXmp(string $file): string
     {
-        $handle = fopen($file, 'rb');
-        if ($handle === false) {
-            return '';
+        $handle  = fopen($file, 'rb');
+        $content = $handle !== false ? fread($handle, self::XMP_READ_LIMIT) : false;
+        if ($handle !== false) {
+            fclose($handle);
         }
 
-        $content = fread($handle, self::XMP_READ_LIMIT);
-        fclose($handle);
-
-        if ($content === false) {
+        if (!$content) {
             return '';
         }
 
         $start = strpos($content, '<?xpacket begin=');
-        if ($start === false) {
-            return '';
-        }
+        $end   = $start !== false ? strpos($content, '<?xpacket end=', $start) : false;
+        $end   = $end !== false ? strpos($content, '?>', $end) : false;
 
-        $end = strpos($content, '<?xpacket end=', $start);
-        if ($end === false) {
-            return '';
-        }
-
-        $end = strpos($content, '?>', $end);
-        if ($end === false) {
-            return '';
-        }
-
-        return substr($content, $start, $end + 2 - $start);
+        return $end !== false ? substr($content, $start, $end + 2 - $start) : '';
     }
 
 
