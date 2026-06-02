@@ -22,12 +22,13 @@ Although primarily written to organize JPG images, this library will work for fi
 
 Enabled date-retrieval methods run in the following order. When the file date is found by one method, the remaining methods are skipped for that file.
 
-| Method              | Description                                                                                                                             | Supported File Types                                                  |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| **EXIF**            | Retrieve the date from the file's EXIF data.                                                                                            | jpeg, jpg, tiff, heif, heic, webp, dng, avif, png                     |
-| **ID3**             | Use [`getid3`](#getid3) for advanced file metadata retrieval methods.                                                                   | mp4, m4a, mov, mkv, webm, mp3, riff, avi, vorbis, flac, ogg, oga, mka |
-| **File Name Masks** | Match date/time patterns in the name of the file.                                                                                       | all files                                                             |
-| **Modified Time**   | Use the file's "last modified" time.<br><br>_This property is set by the operating system and is not as reliable as the other methods._ | all files                                                             |
+| Method              | Description                                                                                                                             | Supported File Types                                                                               |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **EXIF**            | Retrieve the date from the file's EXIF data.                                                                                            | jpeg, jpg, heic, heif, webp, tiff, dng, raw, avif, png                                             |
+| **XMP**             | Retrieve the date from the file's XMP data.                                                                                             | jpeg, jpg, png, gif, svg, heic, heif, webp, tiff, dng, raw, pdf, ai, eps, avif, psd, psb, mp4, mov |
+| **ID3**             | Use [`getid3`](#getid3) for advanced file metadata retrieval methods.                                                                   | mp4, m4a, mov, mkv, webm, mp3, riff, avi, vorbis, flac, ogg, oga, mka                              |
+| **File Name Masks** | Match date/time patterns in the name of the file.                                                                                       | all files                                                                                          |
+| **Modified Time**   | Use the file's "last modified" time.<br><br>_This property is set by the operating system and is not as reliable as the other methods._ | all files                                                                                          |
 
 ## Installation
 
@@ -66,6 +67,7 @@ You can specify any number of profiles. each is processed in order with its own 
 | target_mask          | Directory structure to use for target.<br><br>**Y** = 4-digit year, **y** = 2-digit year, **m** = 2-digit month, **d** = 2-digit day.<br><br>Anything supported by [`date()`](http://php.net/date) will work, except time-based options as they will not be consistent. | `"Y/Y-m-d"`                  |
 | overwrite            | Whether to overwrite destination files.<br>**true** = overwrite same files that already exist in target.<br>**false** = add incrementing counter to identical file names to avoid collisions.                                                                           | `false`                      |
 | scan_exif            | **Date Retrieval Method**: Scan EXIF data for file date.<br><br>Supports image files (JPG, TIFF, HEIC, WEBP, etc.).                                                                                                                                                     | `true`                       |
+| scan_xmp             | **Date Retrieval Method**: Scan XMP data for file date.<br><br>Supports mostly image files (JPG, PNG, GIF, SVG, etc.) and some video files (MP4, MOV, etc.).                                                                                                            | `false`                      |
 | scan_id3             | **Date Retrieval Method**: Scan metadata via [getid3](#getid3) for file date.<br><br>Supports video files (MP4, MOV, MKV, AVI, etc.) and audio files (MP3, FLAC, OGG, etc.).                                                                                            | `false`                      |
 | file_name_masks      | **Date Retrieval Method**: Patterns to search for in file names for date. Set to `false` to disable filename logic.<br><br>**Y** = year digit, **M** = month digit, **D** = day digit. All are replaced with digits for regex search.                                   | `['YYYY-MM-DD', 'YYYYMMDD']` |
 | modified_time        | **Date Retrieval Method**: Whether or not to use the file's modified time.                                                                                                                                                                                              | `false`                      |
@@ -165,6 +167,12 @@ $organizer = new MediaOrganizer(
             'source_directory' => '/data/unorganized_pictures/',
             'target_directory' => '/data/Organized/Pictures/',
             'valid_extensions' => ['jpg'],
+        ],
+        'images_png' => [
+            'source_directory' => '/data/unorganized_pictures/',
+            'target_directory' => '/data/Organized/Pictures/',
+            'valid_extensions' => ['png'],
+            'scan_xmp' => true,
         ],
         'videos' => [
             'source_directory' => '/data/unorganized_videos/',

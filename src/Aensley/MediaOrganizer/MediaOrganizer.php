@@ -38,6 +38,10 @@ class MediaOrganizer
         // DATE RETRIEVAL METHOD: Scan EXIF data for file date.
         // Supports image files (JPG, TIFF, HEIC, WEBP, etc.).
         'scan_exif' => true,
+        // DATE RETRIEVAL METHOD: Scan XMP metadata for file date.
+        // Supports any file format with an embedded XMP packet, typically images (JPG, PNG, GIF, SVG, PDF, etc.),
+        // including files edited in Adobe Lightroom or Photoshop where EXIF may be absent.
+        'scan_xmp' => false,
         // DATE RETRIEVAL METHOD: Scan metadata via getid3 for file date.
         // Supports video files (MP4, MOV, MKV, AVI, etc.) and
         // audio files (MP3, FLAC, OGG, etc.).
@@ -208,11 +212,11 @@ class MediaOrganizer
             $options['scan_id3'] = false;
         }
 
-        $mask      = $options['target_mask'];
+        $mask = $options['target_mask'];
         $maskValid = !empty($mask)
             && (stripos($mask, 'y') !== false || strpos($mask, 'm') !== false || strpos($mask, 'd') !== false);
-        $scanValid = $options['scan_exif'] || $options['scan_id3']
-            || $options['file_name_masks'] || $options['modified_time'];
+        $scanOptions = ['scan_exif', 'scan_xmp', 'scan_id3', 'file_name_masks', 'modified_time'];
+        $scanValid = (bool) array_filter($scanOptions, fn ($key) => $options[$key]);
 
         if (!$maskValid) {
             $this->logger->log('error', 'Invalid or empty target mask.');
@@ -240,6 +244,13 @@ class MediaOrganizer
             $date = File::exifDateTime($file, 'Y-m-d');
             if ($date) {
                 $this->logger->log('debug', 'Date retrieved from EXIF data.');
+            }
+        }
+
+        if (!$date && $options['scan_xmp']) {
+            $date = (new XmpDateExtractor())->getDate($file);
+            if ($date) {
+                $this->logger->log('debug', 'Date retrieved from XMP metadata.');
             }
         }
 
