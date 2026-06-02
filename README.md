@@ -1,12 +1,16 @@
 # aensley/media-organizer
 
 [![Version](https://img.shields.io/packagist/v/aensley/media-organizer.svg?logo=packagist&logoColor=fff)][packagist]
+![PHP Version](https://img.shields.io/packagist/dependency-v/aensley/media-organizer/php?logo=php&logoColor=fff)
 [![License](https://img.shields.io/github/license/aensley/media-organizer.svg)](https://github.com/aensley/media-organizer/blob/master/LICENSE)
+[![prettier](https://img.shields.io/badge/prettier-ff69b4.svg?&logo=prettier&logoColor=fff)](https://prettier.io/)
 [![Downloads](https://img.shields.io/packagist/dt/aensley/media-organizer.svg?logo=packagist&logoColor=fff)][packagist]
-[![Tests](https://github.com/aensley/media-organizer/actions/workflows/test.yml/badge.svg)](https://github.com/aensley/media-organizer/actions/workflows/test.yml)<br>
+[![dependencies](https://img.shields.io/badge/dependencies-check-brightgreen?logo=packagist&logoColor=fff)](https://libraries.io/packagist/aensley%2Fmedia-organizer)<br>
 [![Maintainability](https://qlty.sh/gh/aensley/projects/media-organizer/maintainability.svg)][qltysh]
 [![Code Coverage](https://qlty.sh/gh/aensley/projects/media-organizer/coverage.svg)][qltysh]
+[![Tests](https://github.com/aensley/media-organizer/actions/workflows/test.yml/badge.svg)](https://github.com/aensley/media-organizer/actions/workflows/test.yml)
 [![Socket](https://badge.socket.dev/composer/package/aensley/media-organizer)](https://socket.dev/composer/package/aensley/media-organizer)
+[![Snyk](https://snyk.io/test/github/aensley/media-organizer/badge.svg)](https://security.snyk.io/package/composer/aensley%2Fmedia-organizer)
 
 Organize image, video, and audio files (or any files) into date-based folders.
 
