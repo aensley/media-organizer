@@ -167,7 +167,6 @@ $organizer = new MediaOrganizer(
             'source_directory' => '/data/unorganized_pictures/',
             'target_directory' => '/data/Organized/Pictures/',
             'valid_extensions' => ['jpg'],
-            'scan_xmp' => true,
         ],
         'images_png' => [
             'source_directory' => '/data/unorganized_pictures/',
