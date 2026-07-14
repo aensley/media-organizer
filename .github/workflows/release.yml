@@ -28,7 +28,7 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GHA_SEMANTIC_RELEASE_TOKEN }}
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
       - name: Install dependencies
